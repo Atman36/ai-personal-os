@@ -1,18 +1,18 @@
 ---
 name: hq-spec-handoff-writer
-description: Use when creating or refreshing .hq/specs/<task>/LATEST.md or .hq/handoffs/<task>/LATEST.md for HQ tasks, especially before multi-session work, delegation, timeout handoff, resuming stale packets, or preserving bounded continuity.
+description: Use when creating or refreshing .os_runtime/specs/<task>/LATEST.md or .os_runtime/handoffs/<task>/LATEST.md for Personal OS tasks, especially before multi-session work, delegation, timeout handoff, resuming stale packets, or preserving bounded continuity.
 ---
 
-# HQ Spec Handoff Writer
+# Personal OS Spec Handoff Writer
 
 Use this skill to write private task packets that preserve continuity without publishing private operating detail.
 
 ## Read First
 
 - `AGENTS.md`
-- `python3 scripts/hq_control_plane.py status`
-- `05 AI Control Plane/active-work.json`
-- relevant `.hq/specs/<task>/LATEST.md` and `.hq/handoffs/<task>/LATEST.md` if they already exist
+- `python3 scripts/osctl.py status`
+- `os/05_Control_Plane/active-work.json`
+- relevant `.os_runtime/specs/<task>/LATEST.md` and `.os_runtime/handoffs/<task>/LATEST.md` if they already exist
 - relevant primary update file only when the task contract points to it and the slice requires it
 
 ## Trigger Shape
@@ -28,13 +28,13 @@ Use this skill for requests like:
 
 1. Identify the task id and whether the slice needs a spec, a handoff, or both.
 2. Read only the current task contract and directly relevant packet/update file.
-3. Write the packet under `.hq/specs/<task>/LATEST.md` or `.hq/handoffs/<task>/LATEST.md`.
+3. Write the packet under `.os_runtime/specs/<task>/LATEST.md` or `.os_runtime/handoffs/<task>/LATEST.md`.
 4. Keep the packet private, bounded, and directly resumable.
 5. Report the packet path and next action.
 
 ## Spec Packet
 
-Write `.hq/specs/<task>/LATEST.md` when the task needs planning, delegation, acceptance criteria, or a stable scope.
+Write `.os_runtime/specs/<task>/LATEST.md` when the task needs planning, delegation, acceptance criteria, or a stable scope.
 
 Include only:
 - task id and updated date
@@ -48,7 +48,7 @@ Include only:
 
 ## Handoff Packet
 
-Write `.hq/handoffs/<task>/LATEST.md` when work will resume later, a long-running tool times out, or another role needs bounded continuity.
+Write `.os_runtime/handoffs/<task>/LATEST.md` when work will resume later, a long-running tool times out, or another role needs bounded continuity.
 
 Include only:
 - current state
@@ -60,7 +60,7 @@ Include only:
 
 ## Guardrails
 
-- `.hq/` is private runtime state and must remain git-ignored.
+- `.os_runtime/` is private runtime state and must remain git-ignored.
 - Do not copy raw research, prospect data, credentials, transcripts, telemetry dumps, or private founder notes into tracked files.
 - Do not hand-maintain generated summaries; regenerate them through the relevant script.
 - Keep packets short enough that the next session can start narrow.

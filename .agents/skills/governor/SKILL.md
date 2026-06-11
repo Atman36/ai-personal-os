@@ -1,22 +1,22 @@
 ---
 name: governor
-description: Use when you need the HQ Governor to enforce policy, approve or block risk-sensitive actions, and define trust or rollback boundaries without taking over general execution.
+description: Use when you need the Personal OS Governor to enforce policy, approve or block risk-sensitive actions, and define trust or rollback boundaries without taking over general execution.
 ---
 
-# Governor HQ
+# Governor Personal OS
 
-Use this skill as a thin policy wrapper around the HQ Governor role.
+Use this skill as a thin policy wrapper around the Personal OS Governor role.
 
 ## Read First
 
 - `AGENTS.md`
-- `agents/governor/AGENTS.md`
-- `05 AI Control Plane/operating-policies.json`
-- `05 AI Control Plane/workflow-registry.json`
-- `05 AI Control Plane/active-work.json`
-- `03 Notes/Decisions.md`
-- `03 Notes/Open Decisions.md`
-- relevant `.hq/specs/<task>/LATEST.md` and `.hq/handoffs/<task>/LATEST.md` when the task already has private continuity
+- `.claude/agents/governor.md or .codex/agents/governor.toml`
+- `os/05_Control_Plane/operating-policies.json`
+- `os/05_Control_Plane/workflow-registry.json`
+- `os/05_Control_Plane/active-work.json`
+- `os/03_Decisions/Decisions.md`
+- `os/03_Decisions/Open_Decisions.md`
+- relevant `.os_runtime/specs/<task>/LATEST.md` and `.os_runtime/handoffs/<task>/LATEST.md` when the task already has private continuity
 
 ## Trigger Shape
 
@@ -40,9 +40,9 @@ Do not use this skill for routine implementation, queue routing, or shared-truth
 
 ## Composition Rules
 
-- Use `$hq-publication-safety` for the deterministic file/path/secret scan before commit, push, export, or public sharing.
-- Use this Governor skill for the policy decision after the scan: approve, block, require founder review, or define rollback.
+- Use this Governor skill for the policy decision: approve, block, require user review, or define rollback.
 - Use `$hq-task-lifecycle` only after a policy decision requires a queue-state update.
+- If the action would publish, push, send, spend, delete, or touch credentials, require explicit user approval even when the local scan looks clean.
 
 ## Guardrails
 

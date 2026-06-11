@@ -1,22 +1,22 @@
 ---
 name: delivery
-description: Use when you need the HQ Delivery role to turn a scoped task into concrete artifacts, implementation changes, or execution output inside the current authority limits.
+description: Use when you need the Personal OS Delivery role to turn a scoped task into concrete artifacts, implementation changes, or execution output inside the current authority limits.
 ---
 
-# Delivery HQ
+# Delivery Personal OS
 
-Use this skill as a thin execution wrapper around the HQ Delivery role.
+Use this skill as a thin execution wrapper around the Personal OS Delivery role.
 
 ## Read First
 
 - `AGENTS.md`
-- `agents/delivery/AGENTS.md`
-- `now.md`
-- `projects.md`
-- `stack.md`
-- `05 AI Control Plane/active-work.json`
-- relevant `.hq/specs/<task>/LATEST.md` and `.hq/handoffs/<task>/LATEST.md` when the task already has private continuity
-- `05 AI Control Plane/operating-policies.json` when the slice could involve external write, spend, deployment, legal/public commitment, or destructive action
+- `.agents/skills/delivery/SKILL.md and the executor role prompt if needed`
+- `os/now.md`
+- `os/projects.md`
+- `os/stack.md`
+- `os/05_Control_Plane/active-work.json`
+- relevant `.os_runtime/specs/<task>/LATEST.md` and `.os_runtime/handoffs/<task>/LATEST.md` when the task already has private continuity
+- `os/05_Control_Plane/operating-policies.json` when the slice could involve external write, spend, deployment, legal/public commitment, or destructive action
 
 ## Trigger Shape
 

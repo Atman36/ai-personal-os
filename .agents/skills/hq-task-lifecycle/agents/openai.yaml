@@ -1,4 +1,4 @@
 interface:
-  display_name: "HQ Task Lifecycle"
-  short_description: "Create, update, sync, and validate HQ control-plane tasks"
-  default_prompt: "Use $hq-task-lifecycle to update active-work.json, sync the task board, and validate the HQ control plane."
+  display_name: "Personal OS Task Lifecycle"
+  short_description: "Create, update, sync, and validate Personal OS control-plane tasks"
+  default_prompt: "Use $hq-task-lifecycle to update active-work.json, sync the task board, and validate the Personal OS control plane."

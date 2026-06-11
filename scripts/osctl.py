@@ -20,6 +20,11 @@ No external dependencies. Commands:
   run-step       Append a step to an active run record.
   run-finish     Finish a run with status, verification, and artifacts.
   run-receipt    Render a Markdown receipt next to the run record.
+  approval-request
+                Create a local approval record under .os_runtime.
+  approval-decide
+                Approve, reject, or block a pending approval record.
+  approval-list  List local approval records.
 """
 from __future__ import annotations
 
@@ -41,6 +46,7 @@ DECISIONS = ROOT / "os/03_Decisions"
 RUNTIME = ROOT / ".os_runtime"
 CONTROL_PLANE = ROOT / "os/05_Control_Plane"
 SCHEMAS = CONTROL_PLANE / "schemas"
+APPROVAL_SCHEMA = SCHEMAS / "approval.schema.json"
 
 # Personal state files are gitignored. They are seeded from committed *.example
 # templates on a fresh clone via `init`. (example, live) pairs:
@@ -68,6 +74,35 @@ RUN_REQUIRED = ["run_id", "task_id", "workflow", "actor", "status", "started_at"
 RUN_FINAL_STATUSES = {"completed", "failed", "cancelled"}
 RUN_STATUSES = RUN_FINAL_STATUSES | {"running", "waiting_approval", "blocked"}
 STEP_STATUSES = {"completed", "failed", "blocked", "skipped"}
+POLICY_ACTIONS = {"allow", "allow_with_review", "pause_for_founder_approval", "block"}
+APPROVAL_DECISIONS = {"approved", "rejected", "blocked"}
+APPROVAL_REQUIRED = [
+    "schema_version",
+    "entity_type",
+    "id",
+    "task_id",
+    "thread_id",
+    "mission_id",
+    "run_id",
+    "step_id",
+    "requested_by",
+    "requested_for",
+    "policy_action",
+    "approval_key",
+    "status",
+    "decision",
+    "tool_scope",
+    "policy_context",
+    "risk_tier",
+    "autonomy_tier",
+    "summary",
+    "rationale",
+    "requested_at",
+    "updated_at",
+    "decided_at",
+    "decided_by",
+    "metadata",
+]
 NOTE_NAME_RE = re.compile(
     r"^(?:\{(?P<project>[A-Z0-9][A-Z0-9_-]*)\} )?"
     r"\{(?P<type>[a-z][a-z0-9_-]*)\} "
@@ -584,10 +619,35 @@ def run_artifacts_dir(run_id: str) -> Path:
     return RUNTIME / "artifacts" / run_id
 
 
+def approvals_dir() -> Path:
+    return RUNTIME / "approvals"
+
+
 def validate_run_record(record: Dict[str, Any]) -> List[str]:
     errors = [f"missing {field}" for field in RUN_REQUIRED if field not in record]
     if "status" in record and record["status"] not in RUN_STATUSES:
         errors.append(f"invalid status {record['status']!r}")
+    return errors
+
+
+def validate_approval_record(record: Dict[str, Any]) -> List[str]:
+    errors = [f"missing {field}" for field in APPROVAL_REQUIRED if field not in record]
+    if "policy_action" in record and record["policy_action"] not in POLICY_ACTIONS:
+        errors.append(f"invalid policy_action {record['policy_action']!r}")
+    if "risk_tier" in record and record["risk_tier"] not in RISKS:
+        errors.append(f"invalid risk_tier {record['risk_tier']!r}")
+    if "autonomy_tier" in record and record["autonomy_tier"] not in AUTONOMY:
+        errors.append(f"invalid autonomy_tier {record['autonomy_tier']!r}")
+    if record.get("status") not in {"pending", "decided"}:
+        errors.append(f"invalid status {record.get('status')!r}")
+    decision = record.get("decision")
+    if record.get("status") == "pending" and decision:
+        errors.append("pending approval must not have a decision")
+    if record.get("status") == "decided" and decision not in APPROVAL_DECISIONS:
+        errors.append("decided approval must have approved, rejected, or blocked decision")
+    if APPROVAL_SCHEMA.exists():
+        schema = json.loads(APPROVAL_SCHEMA.read_text(encoding="utf-8"))
+        errors.extend(validate_against_schema(record, schema, schema))
     return errors
 
 
@@ -610,6 +670,40 @@ def save_run(path: Path, record: Dict[str, Any]) -> None:
         raise SystemExit("Invalid run record: " + "; ".join(errors))
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def find_approval_record(approval_id: str) -> Path:
+    if approvals_dir().exists():
+        for path in sorted(approvals_dir().glob(f"*/{approval_id}.json")):
+            return path
+    raise SystemExit(f"Approval not found: {approval_id}")
+
+
+def load_approval(approval_id: str) -> tuple[Path, Dict[str, Any]]:
+    path = find_approval_record(approval_id)
+    return path, json.loads(path.read_text(encoding="utf-8"))
+
+
+def save_approval(path: Path, record: Dict[str, Any]) -> None:
+    record["updated_at"] = utc_timestamp()
+    errors = validate_approval_record(record)
+    if errors:
+        raise SystemExit("Invalid approval record: " + "; ".join(errors))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def list_approvals(status: str = "all") -> List[tuple[Path, Dict[str, Any]]]:
+    records: List[tuple[Path, Dict[str, Any]]] = []
+    if not approvals_dir().exists():
+        return records
+    for path in sorted(approvals_dir().glob("*/*.json")):
+        record = json.loads(path.read_text(encoding="utf-8"))
+        if status != "all" and record.get("status") != status:
+            continue
+        records.append((path, record))
+    records.sort(key=lambda item: (str(item[1].get("requested_at", "")), str(item[1].get("id", ""))))
+    return records
 
 
 def cmd_run_start(args: argparse.Namespace) -> None:
@@ -702,6 +796,98 @@ def cmd_run_receipt(args: argparse.Namespace) -> None:
     receipt = path.with_name(f"{record['run_id']}-receipt.md")
     receipt.write_text(render_run_receipt(record), encoding="utf-8")
     print(f"Receipt: {receipt.relative_to(ROOT)}")
+
+
+def cmd_approval_request(args: argparse.Namespace) -> None:
+    approval_id = normalize_text(args.id) or f"approval-{now()}-{uuid.uuid4().hex[:8]}"
+    if approvals_dir().exists() and any(approvals_dir().glob(f"*/{approval_id}.json")):
+        raise SystemExit(f"Approval id already exists: {approval_id}")
+    tool_scope = normalize_list(args.tool_scope)
+    payload = {
+        "schema_version": 1,
+        "entity_type": "approval",
+        "id": approval_id,
+        "task_id": normalize_text(args.task_id),
+        "thread_id": normalize_text(args.thread_id),
+        "mission_id": normalize_text(args.mission_id),
+        "run_id": normalize_text(args.run_id),
+        "step_id": normalize_text(args.step_id),
+        "requested_by": normalize_text(args.requested_by),
+        "requested_for": normalize_text(args.requested_for),
+        "policy_action": normalize_text(args.policy_action),
+        "approval_key": {
+            "task_id": normalize_text(args.task_id),
+            "requested_for": normalize_text(args.requested_for),
+            "policy_action": normalize_text(args.policy_action),
+            "tool_scope": tool_scope,
+        },
+        "status": "pending",
+        "decision": "",
+        "tool_scope": tool_scope,
+        "policy_context": {
+            "risk_tier": normalize_text(args.risk_tier),
+            "autonomy_tier": normalize_text(args.autonomy_tier),
+        },
+        "risk_tier": normalize_text(args.risk_tier),
+        "autonomy_tier": normalize_text(args.autonomy_tier),
+        "summary": normalize_text(args.summary),
+        "rationale": normalize_text(args.rationale),
+        "requested_at": utc_timestamp(),
+        "updated_at": utc_timestamp(),
+        "decided_at": "",
+        "decided_by": "",
+        "metadata": {},
+    }
+    missing = [
+        field
+        for field in (
+            "task_id",
+            "requested_by",
+            "requested_for",
+            "policy_action",
+            "summary",
+            "risk_tier",
+            "autonomy_tier",
+        )
+        if not payload[field]
+    ]
+    if not tool_scope:
+        missing.append("tool_scope")
+    if missing:
+        raise SystemExit("Missing approval field(s): " + ", ".join(missing))
+    path = approvals_dir() / str(payload["requested_at"])[:7] / f"{approval_id}.json"
+    save_approval(path, payload)
+    print(f"Requested approval {approval_id}")
+    print(f"Record: {path.relative_to(ROOT)}")
+
+
+def cmd_approval_decide(args: argparse.Namespace) -> None:
+    if args.decision == "approved" and not normalize_text(args.decided_by):
+        raise SystemExit("approved decisions require --decided-by")
+    path, record = load_approval(args.approval)
+    if record.get("status") == "decided":
+        raise SystemExit(f"Approval {args.approval} is already decided")
+    record["status"] = "decided"
+    record["decision"] = normalize_text(args.decision)
+    record["decided_by"] = normalize_text(args.decided_by)
+    record["decided_at"] = utc_timestamp()
+    record["rationale"] = normalize_text(args.rationale) or normalize_text(record.get("rationale"))
+    save_approval(path, record)
+    print(f"Decided approval {args.approval}: {args.decision}")
+    print(f"Record: {path.relative_to(ROOT)}")
+
+
+def cmd_approval_list(args: argparse.Namespace) -> None:
+    records = list_approvals(status=args.status)
+    if not records:
+        print("No approval records.")
+        return
+    for path, record in records:
+        decision = record.get("decision") or "pending"
+        print(
+            f"- {record.get('id')}: {record.get('status')} / {decision} | "
+            f"{record.get('task_id')} | {record.get('summary')} | {path.relative_to(ROOT)}"
+        )
 
 
 def cmd_init(_: argparse.Namespace) -> None:
@@ -956,6 +1142,31 @@ def main() -> None:
     run_receipt = sub.add_parser("run-receipt")
     run_receipt.add_argument("--run", required=True)
     run_receipt.set_defaults(func=cmd_run_receipt)
+    approval_request = sub.add_parser("approval-request")
+    approval_request.add_argument("--id")
+    approval_request.add_argument("--task-id", required=True)
+    approval_request.add_argument("--requested-by", required=True)
+    approval_request.add_argument("--requested-for", required=True)
+    approval_request.add_argument("--policy-action", choices=sorted(POLICY_ACTIONS), required=True)
+    approval_request.add_argument("--tool-scope", action="append", required=True)
+    approval_request.add_argument("--summary", required=True)
+    approval_request.add_argument("--risk-tier", choices=sorted(RISKS), required=True)
+    approval_request.add_argument("--autonomy-tier", choices=sorted(AUTONOMY), required=True)
+    approval_request.add_argument("--run-id", default="")
+    approval_request.add_argument("--step-id", default="")
+    approval_request.add_argument("--thread-id", default="local")
+    approval_request.add_argument("--mission-id", default="local")
+    approval_request.add_argument("--rationale", default="")
+    approval_request.set_defaults(func=cmd_approval_request)
+    approval_decide = sub.add_parser("approval-decide")
+    approval_decide.add_argument("--approval", required=True)
+    approval_decide.add_argument("--decision", choices=sorted(APPROVAL_DECISIONS), required=True)
+    approval_decide.add_argument("--decided-by", default="")
+    approval_decide.add_argument("--rationale", default="")
+    approval_decide.set_defaults(func=cmd_approval_decide)
+    approval_list = sub.add_parser("approval-list")
+    approval_list.add_argument("--status", choices=["all", "pending", "decided"], default="pending")
+    approval_list.set_defaults(func=cmd_approval_list)
     args = parser.parse_args()
     args.func(args)
 

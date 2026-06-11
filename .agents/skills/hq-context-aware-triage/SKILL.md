@@ -1,20 +1,20 @@
 ---
 name: hq-context-aware-triage
-description: Use when turning a broad HQ request, founder idea, report, blocker, or incoming work item into a scoped HQ task contract with owner, accepting role, risk tier, autonomy tier, workflow, primary update file, acceptance criteria, and next step.
+description: Use when turning a broad Personal OS request, founder idea, report, blocker, or incoming work item into a scoped Personal OS task contract with owner, accepting role, risk tier, autonomy tier, workflow, primary update file, acceptance criteria, and next step.
 ---
 
-# HQ Context-Aware Triage
+# Personal OS Context-Aware Triage
 
-Use this skill before adding or reshaping work in the HQ queue.
+Use this skill before adding or reshaping work in the Personal OS queue.
 
 ## Read First
 
 - `AGENTS.md`
-- `python3 scripts/hq_control_plane.py status`
-- `05 AI Control Plane/agent-registry.json`
-- `05 AI Control Plane/workflow-registry.json`
-- `05 AI Control Plane/operating-policies.json`
-- `05 AI Control Plane/active-work.json` when queue placement, duplication, or ownership matters
+- `python3 scripts/osctl.py status`
+- `os/05_Control_Plane/agent-registry.json`
+- `os/05_Control_Plane/workflow-registry.json`
+- `os/05_Control_Plane/operating-policies.json`
+- `os/05_Control_Plane/active-work.json` when queue placement, duplication, or ownership matters
 - task-local spec/handoff packets only when the incoming work maps to an existing task
 
 ## Trigger Shape

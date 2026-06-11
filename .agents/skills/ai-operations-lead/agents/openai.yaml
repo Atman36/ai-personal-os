@@ -1,4 +1,4 @@
 interface:
   display_name: "AI Operations Lead"
-  short_description: "Route HQ work, maintain queue state, and decide the next execution slice"
-  default_prompt: "Use $ai-operations-lead to route the next HQ slice, update queue state, and keep continuity healthy."
+  short_description: "Route Personal OS work, maintain queue state, and decide the next execution slice"
+  default_prompt: "Use $ai-operations-lead to route the next Personal OS slice, update queue state, and keep continuity healthy."

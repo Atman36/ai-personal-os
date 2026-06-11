@@ -1,18 +1,18 @@
 ---
 name: self-improvement-loop
-description: Use when improving HQ operating behavior, processing reflections, proposing memory or prompt updates, creating skill candidates, or reviewing whether repeated agent feedback should change AGENTS.md, a role prompt, a skill, a hook, or the control plane.
+description: Use when improving Personal OS operating behavior, processing reflections, proposing memory or prompt updates, creating skill candidates, or reviewing whether repeated agent feedback should change AGENTS.md, a role prompt, a skill, a hook, or the control plane.
 ---
 
 # Self-Improvement Loop
 
-Use this skill to keep HQ learning from sessions without turning always-loaded files into logs.
+Use this skill to keep Personal OS learning from sessions without turning always-loaded files into logs.
 
 ## Read First
 
 - `AGENTS.md`
-- `scripts/hq_runtime.py` with `--help` when you need the exact reflection commands
-- `.hq/improvements/LATEST.md` when reviewing the latest private synthesis
-- relevant `.hq/specs/<task>/LATEST.md` and `.hq/handoffs/<task>/LATEST.md` only when the improvement is tied to a current task
+- `scripts/osctl.py` with `--help` when you need the exact reflection commands
+- `.os_runtime/improvements/LATEST.md` when reviewing the latest private synthesis
+- relevant `.os_runtime/specs/<task>/LATEST.md` and `.os_runtime/handoffs/<task>/LATEST.md` only when the improvement is tied to a current task
 
 ## Trigger Shape
 
@@ -31,13 +31,13 @@ Run the loop as:
 
 `observe -> capture privately -> synthesize -> evaluate -> promote -> consume`
 
-Do not write raw session lessons directly into `AGENTS.md`, role prompts, or shared project truth. The active pool is `.hq/reflections/sessions/`; promoted improvement reviews are `.hq/improvements/`; consumed receipts are `.hq/reflections/receipts/`.
+Do not write raw session lessons directly into `AGENTS.md`, role prompts, or shared project truth. The active pool is `.os_runtime/reflections/sessions/`; promoted improvement reviews are `.os_runtime/improvements/`; consumed receipts are `.os_runtime/reflections/receipts/`.
 
 ## Default Workflow
 
 1. Identify the repeated behavior, failure, or improvement candidate.
-2. Capture raw evidence privately under `.hq/reflections/` when it is reusable.
-3. Synthesize candidates only after repeated evidence or explicit founder instruction.
+2. Capture raw evidence privately under `.os_runtime/reflections/` when it is reusable.
+3. Synthesize candidates only after repeated evidence or explicit user instruction.
 4. Choose the smallest durable surface: skill, role prompt, validator, schema, hook, or control-plane field.
 5. Apply the change only when it respects current approval boundaries.
 6. Consume the source reflection records only after the improvement is actually applied.
@@ -47,7 +47,7 @@ Do not write raw session lessons directly into `AGENTS.md`, role prompts, or sha
 At session close, write one structured reflection only when there is a reusable lesson:
 
 ```bash
-python3 scripts/hq_runtime.py reflection \
+python3 scripts/osctl.py reflection-capture \
   --agent "<agent-or-role>" \
   --task "<task-id>" \
   --session "<session-id>" \
@@ -71,14 +71,14 @@ Skip capture when the note is just a TODO, temporary status, discoverable code s
 Daily or weekly, aggregate active reflections:
 
 ```bash
-python3 scripts/hq_runtime.py weekly-review --days 7 --min-observations 2 --min-unique-sessions 2
+python3 scripts/osctl.py reflection-review --min-observations 2 --min-unique-sessions 2
 ```
 
 This creates private review artifacts only. It must not edit `AGENTS.md`, role prompts, skills, access rules, safety rules, shared truth, or production logic.
 
 ## Promotion Rules
 
-Promote only after repeated evidence or explicit founder instruction.
+Promote only after repeated evidence or explicit user instruction.
 
 - Procedure or repeated checklist: create or update a skill.
 - Role behavior: update the narrow role prompt or role skill.
@@ -94,7 +94,7 @@ Before promotion, check for duplicates, conflicts, and whether the candidate can
 After an improvement has actually been applied, remove the source records from the active reflection pool:
 
 ```bash
-python3 scripts/hq_runtime.py reflection-consume \
+python3 scripts/osctl.py reflection-consume \
   --issue-key "<stable-cluster-key>" \
   --reason "<what was changed>"
 ```
@@ -103,15 +103,11 @@ This deletes matching active records and writes only a small receipt without raw
 
 ## Legacy Migration
 
-If flat files exist directly under `.hq/reflections/`, move them into the active session store first:
-
-```bash
-python3 scripts/hq_runtime.py reflection-migrate
-```
+If flat files exist directly under `.os_runtime/reflections/`, do not promote them automatically. Convert only reusable records into structured `reflection-capture` entries, then archive or delete the loose files.
 
 ## Guardrails
 
-- Keep `.hq/` private and untracked.
+- Keep `.os_runtime/` private and untracked.
 - Do not retain raw reflections after they have been used to improve the project.
 - Do not use reflection review as approval to change safety, access, production, public, legal, or spend behavior.
 - If a candidate touches restricted surfaces, keep it manual-only and escalate to Governor or CEO.

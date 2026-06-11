@@ -1,19 +1,19 @@
 ---
 name: hq-weekly-operating-review
-description: Use for HQ weekly review, operating review, founder weekly ritual, carry-forward review, queue health review, stale packet review, next-week commitments, or refreshing the weekly operating cadence from the control plane.
+description: Use for Personal OS weekly review, operating review, founder weekly ritual, carry-forward review, queue health review, stale packet review, next-week commitments, or refreshing the weekly operating cadence from the control plane.
 ---
 
-# HQ Weekly Operating Review
+# Personal OS Weekly Operating Review
 
 Use this skill for the founder-facing weekly operating ritual. It is a workflow wrapper, not an independent source of truth.
 
 ## Read First
 
 - `AGENTS.md`
-- `python3 scripts/hq_control_plane.py status`
-- `.hq/state/WORKFLOW.generated.md` when available and the review needs a generated summary
+- `python3 scripts/osctl.py status`
+- `os/02_Planning/Task_Board.md` when available and the review needs a generated summary
 - `02 Planning/Weekly Plan.md` only when updating the human working layer
-- `05 AI Control Plane/active-work.json`
+- `os/05_Control_Plane/active-work.json`
 - task-local spec/handoff packets only for active or stale items being reviewed
 
 ## Trigger Shape
@@ -40,7 +40,7 @@ Use this skill for requests like:
 - Do not make strategy, legal, budget, public, or hiring decisions on behalf of the founder.
 - Do not turn the weekly review into broad repo exploration.
 - Do not hand-edit generated artifacts.
-- Keep private task details in `.hq/`; keep tracked summaries public-safe and minimal.
+- Keep private task details in `.os_runtime/`; keep tracked summaries public-safe and minimal.
 
 ## Expected Output Shape
 

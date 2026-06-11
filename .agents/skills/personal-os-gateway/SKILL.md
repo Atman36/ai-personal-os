@@ -19,7 +19,7 @@ Use Russian by default unless the user asks otherwise.
 4. `os/05_Control_Plane/active-work.json`
 5. `os/03_Decisions/Open_Decisions.md`
 
-If the request is strategic, also read `os/01_Operating_System/Operating_Model.md` and `os/01_Operating_System/Agent_Routing.md`.
+If the request is strategic or changes the framework, also read `os/01_Operating_System/Operating_Model.md`, `os/01_Operating_System/Agent_Routing.md`, `docs/FRAMEWORK.md`, and `docs/HARNESS_DECISION.md`.
 
 ## Route Every Request
 
@@ -33,6 +33,8 @@ Classify the request into one primary mode:
 - **improve**: change a process, skill, prompt, checklist, or agent role.
 
 Use `references/routing-matrix.md` for role selection.
+
+Before execution, choose local mode or harness mode. Use local Codex/Claude Code for small reversible repo-local work; use harness mode when the work needs checkpoints, replay, persistent workspace, parallel agents, external connectors, side effects, approval records, trace/artifact bundles, or recovery after interruption.
 
 ## Default Response Shape
 
@@ -59,6 +61,7 @@ For decisions above low risk or with strategic impact, use the `personal-os-deci
 - After changing active work, run `python3 scripts/osctl.py sync`.
 - Do not edit `Task_Board.md` by hand.
 - Put private or temporary continuation notes in `.os_runtime/handoffs/`, not in durable project truth.
+- Name new durable notes with `{type} description – YYYY-MM-DD.md` or `{PROJECT} {type} description – YYYY-MM-DD.md`. Use `python3 scripts/osctl.py note-name` when unsure.
 
 ## Safety and Approval
 

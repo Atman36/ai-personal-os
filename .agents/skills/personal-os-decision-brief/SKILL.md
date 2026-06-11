@@ -29,7 +29,7 @@ If inputs are missing, infer only low-risk placeholders and mark them as assumpt
 4. Identify one-way-door vs two-way-door aspects.
 5. Name hidden dependencies and missing evidence.
 6. Recommend one next move: decide now, run a test, collect evidence, or stop.
-7. Write the brief to `os/03_Decisions/` when the user asks to persist it.
+7. Write the brief to `os/03_Decisions/` when the user asks to persist it. Use `python3 scripts/osctl.py decision` or name the file as `{decision} description – YYYY-MM-DD.md`.
 
 ## Output Template
 

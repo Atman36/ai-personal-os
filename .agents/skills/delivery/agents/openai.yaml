@@ -1,4 +1,4 @@
 interface:
   display_name: "Delivery"
-  short_description: "Execute a bounded HQ slice and produce the concrete artifact"
-  default_prompt: "Use $delivery to execute the current bounded HQ task and return the concrete artifact or handoff."
+  short_description: "Execute a bounded Personal OS slice and produce the concrete artifact"
+  default_prompt: "Use $delivery to execute the current bounded Personal OS task and return the concrete artifact or handoff."

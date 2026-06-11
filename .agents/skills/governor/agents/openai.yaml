@@ -1,4 +1,4 @@
 interface:
   display_name: "Governor"
-  short_description: "Enforce HQ policy, approvals, and trust boundaries"
+  short_description: "Enforce Personal OS policy, approvals, and trust boundaries"
   default_prompt: "Use $governor to decide whether a task is policy-safe, blocked, or needs an explicit boundary call."

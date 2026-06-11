@@ -33,9 +33,18 @@ class OsctlTests(unittest.TestCase):
         self.osctl.BOARD = self.root / "os/02_Planning/Task_Board.md"
         self.osctl.DECISIONS = self.root / "os/03_Decisions"
         self.osctl.RUNTIME = self.root / ".os_runtime"
+        self.osctl.CONTROL_PLANE = self.root / "os/05_Control_Plane"
+        self.osctl.SCHEMAS = self.root / "os/05_Control_Plane/schemas"
         self.osctl.ACTIVE_SCHEMA = self.root / "os/05_Control_Plane/schemas/active-work.schema.json"
         self.osctl.ACTIVE_SCHEMA.write_text(
             (Path(__file__).resolve().parents[1] / "os/05_Control_Plane/schemas/active-work.schema.json").read_text(
+                encoding="utf-8"
+            ),
+            encoding="utf-8",
+        )
+        self.osctl.APPROVAL_SCHEMA = self.root / "os/05_Control_Plane/schemas/approval.schema.json"
+        self.osctl.APPROVAL_SCHEMA.write_text(
+            (Path(__file__).resolve().parents[1] / "os/05_Control_Plane/schemas/approval.schema.json").read_text(
                 encoding="utf-8"
             ),
             encoding="utf-8",
@@ -276,6 +285,107 @@ class OsctlTests(unittest.TestCase):
 
         self.assertIn("missing task_id", errors)
         self.assertIn("missing verification", errors)
+
+    def request_approval(self, approval_id: str = "approval-test") -> None:
+        self.osctl.cmd_approval_request(
+            argparse.Namespace(
+                id=approval_id,
+                task_id="task-1",
+                requested_by="ai_ops_lead",
+                requested_for="github_issue_create",
+                policy_action="pause_for_founder_approval",
+                tool_scope=["github:issues"],
+                summary="Create a GitHub issue for task-1.",
+                risk_tier="medium",
+                autonomy_tier="A3",
+                run_id="",
+                step_id="",
+                thread_id="local",
+                mission_id="local",
+                rationale="External write needs review.",
+            )
+        )
+
+    def test_approval_request_writes_required_fields(self) -> None:
+        self.request_approval()
+
+        record_path = next((self.osctl.RUNTIME / "approvals").glob("*/approval-test.json"))
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        self.assertEqual(record["task_id"], "task-1")
+        self.assertEqual(record["requested_by"], "ai_ops_lead")
+        self.assertEqual(record["requested_for"], "github_issue_create")
+        self.assertEqual(record["tool_scope"], ["github:issues"])
+        self.assertEqual(record["risk_tier"], "medium")
+        self.assertEqual(record["autonomy_tier"], "A3")
+        self.assertEqual(record["status"], "pending")
+        self.assertEqual(record["decision"], "")
+
+    def test_approval_decide_approves_with_decided_by(self) -> None:
+        self.request_approval()
+
+        self.osctl.cmd_approval_decide(
+            argparse.Namespace(approval="approval-test", decision="approved", decided_by="user", rationale="Approved.")
+        )
+
+        record_path = next((self.osctl.RUNTIME / "approvals").glob("*/approval-test.json"))
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        self.assertEqual(record["status"], "decided")
+        self.assertEqual(record["decision"], "approved")
+        self.assertEqual(record["decided_by"], "user")
+        self.assertTrue(record["decided_at"])
+
+    def test_approval_decide_rejects_without_owner_for_approval(self) -> None:
+        self.request_approval()
+
+        with self.assertRaises(SystemExit):
+            self.osctl.cmd_approval_decide(
+                argparse.Namespace(approval="approval-test", decision="approved", decided_by="", rationale="")
+            )
+
+    def test_approval_decide_rejects_request_without_decided_by(self) -> None:
+        self.request_approval()
+
+        self.osctl.cmd_approval_decide(
+            argparse.Namespace(approval="approval-test", decision="rejected", decided_by="", rationale="Not needed.")
+        )
+
+        record_path = next((self.osctl.RUNTIME / "approvals").glob("*/approval-test.json"))
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        self.assertEqual(record["decision"], "rejected")
+        self.assertEqual(record["decided_by"], "")
+
+    def test_approval_list_filters_pending_records(self) -> None:
+        self.request_approval("approval-pending")
+        self.request_approval("approval-decided")
+        self.osctl.cmd_approval_decide(
+            argparse.Namespace(approval="approval-decided", decision="rejected", decided_by="", rationale="No.")
+        )
+
+        records = self.osctl.list_approvals(status="pending")
+
+        self.assertEqual([record["id"] for _, record in records], ["approval-pending"])
+
+    def test_run_receipt_references_approval_record(self) -> None:
+        self.request_approval()
+        self.start_run()
+        self.osctl.cmd_approval_decide(
+            argparse.Namespace(approval="approval-test", decision="approved", decided_by="user", rationale="Approved.")
+        )
+        self.osctl.cmd_run_finish(
+            argparse.Namespace(
+                run="run-test",
+                status="completed",
+                verification="approval linked",
+                evidence=[],
+                artifact=[],
+                approval_id=["approval-test"],
+            )
+        )
+
+        self.osctl.cmd_run_receipt(argparse.Namespace(run="run-test"))
+
+        receipt = next((self.osctl.RUNTIME / "runs").glob("*/run-test-receipt.md"))
+        self.assertIn("approval-test", receipt.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
