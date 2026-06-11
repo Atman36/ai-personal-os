@@ -44,6 +44,16 @@ Denied first:
 - ingest private journals/health notes without explicit opt-in;
 - rewrite personal memory in bulk.
 
+Shipped v1: local read-only indexer `scripts/obsidian_index.py` (no MCP, no vault writes).
+
+```
+OBSIDIAN_VAULT=~/vault python3 scripts/obsidian_index.py [--include Projects] [--allow journal]
+```
+
+Writes `.os_runtime/obsidian/index.json` and `report.md` (note-quality report).
+Diary/journal/health/therapy/private/messages folders (and Russian equivalents) are
+denied by default; `--allow <token>` is the explicit opt-in.
+
 ### 4. Email / Telegram
 
 Allowed first:
