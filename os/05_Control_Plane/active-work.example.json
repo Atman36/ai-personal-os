@@ -1,21 +1,31 @@
 {
-  "version": "1.0.0",
+  "version": 1,
   "updated_at": "2026-06-10",
   "operating_mode": "personal-os-bootstrap",
-  "objective": "Stand up a Codex-based Personal OS that can decide, plan, delegate, and improve.",
+  "objective": {
+    "id": "personal-os-bootstrap",
+    "title": "Stand up a Codex-based Personal OS that can decide, plan, delegate, and improve.",
+    "window": {
+      "start": "2026-06-10",
+      "target_end": "2026-06-30"
+    },
+    "success_criteria": [
+      "Personal OS can decide, plan, delegate, and improve through local control-plane workflows."
+    ]
+  },
   "tasks": [
     {
       "id": "clarify-personal-os-charter",
       "title": "Сформулировать North Star и первый реальный use case Personal OS",
-      "status": "this_week",
+      "column": "this_week",
       "project": "Personal OS Bootstrap",
       "manager": "chief_of_staff",
       "owner": "ceo",
       "accepts_result": "user",
-      "risk": "low",
-      "autonomy": "A1",
+      "risk_tier": "low",
+      "autonomy_tier": "A1",
       "workflow": "decision",
-      "next": "Запустить `.codex/prompts/decision.md` и выбрать первый проект, который OS будет вести.",
+      "next_step": "Запустить `.codex/prompts/decision.md` и выбрать первый проект, который OS будет вести.",
       "done_when": "Есть decision brief: какой проект ведём первым, почему, какие метрики успеха и что не делаем.",
       "primary_update_file": "os/now.md",
       "support": [
@@ -32,15 +42,15 @@
     {
       "id": "run-first-daily-start",
       "title": "Провести первый daily start в Codex",
-      "status": "executing",
+      "column": "executing",
       "project": "Personal OS Bootstrap",
       "manager": "ai_ops_lead",
       "owner": "chief_of_staff",
       "accepts_result": "user",
-      "risk": "low",
-      "autonomy": "A2",
+      "risk_tier": "low",
+      "autonomy_tier": "A2",
       "workflow": "daily_ops",
-      "next": "Открыть Codex и выполнить prompt из `.codex/prompts/daily-start.md`.",
+      "next_step": "Открыть Codex и выполнить prompt из `.codex/prompts/daily-start.md`.",
       "done_when": "Codex выдал Top-3 действий, нашёл блокеры и синхронизировал Task Board.",
       "primary_update_file": "os/02_Planning/Task_Board.md",
       "support": [
@@ -56,15 +66,15 @@
     {
       "id": "choose-first-tool-connector",
       "title": "Выбрать первый инструментальный коннектор после локального контура",
-      "status": "backlog",
+      "column": "backlog",
       "project": "Personal OS Bootstrap",
       "manager": "ai_ops_lead",
       "owner": "architect",
       "accepts_result": "governor",
-      "risk": "medium",
-      "autonomy": "A1",
+      "risk_tier": "medium",
+      "autonomy_tier": "A1",
       "workflow": "architecture_decision",
-      "next": "Сравнить GitHub, Calendar, Obsidian, Email/Telegram как первый connector.",
+      "next_step": "Сравнить GitHub, Calendar, Obsidian, Email/Telegram как первый connector.",
       "done_when": "Есть brief с выбранным первым connector, разрешёнными действиями, deny-list, approval gates и audit log.",
       "primary_update_file": "docs/MCP_PLAN.md",
       "support": [

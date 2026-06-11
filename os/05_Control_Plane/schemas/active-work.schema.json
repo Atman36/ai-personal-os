@@ -92,7 +92,15 @@
             "$ref": "#/$defs/non_empty_string"
           },
           "column": {
-            "$ref": "#/$defs/non_empty_string"
+            "type": "string",
+            "enum": [
+              "inbox",
+              "this_week",
+              "executing",
+              "waiting",
+              "done",
+              "backlog"
+            ]
           },
           "manager": {
             "$ref": "#/$defs/non_empty_string"
@@ -116,10 +124,22 @@
             "$ref": "#/$defs/non_empty_string"
           },
           "risk_tier": {
-            "$ref": "#/$defs/non_empty_string"
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
           },
           "autonomy_tier": {
-            "$ref": "#/$defs/non_empty_string"
+            "type": "string",
+            "enum": [
+              "A0",
+              "A1",
+              "A2",
+              "A3",
+              "A4"
+            ]
           },
           "workflow": {
             "$ref": "#/$defs/non_empty_string"

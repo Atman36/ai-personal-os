@@ -22,6 +22,7 @@ Read these before planning or changing operating state:
 - `Task_Board.md` is generated. Do not edit it by hand.
 - Use `.os_runtime/` for private handoffs, run notes, raw reflections, telemetry, and temporary context.
 - Use durable Markdown only for accepted truth, decisions, plans, and project pages.
+- Keep self-improvement raw material private in `.os_runtime/reflections/`; promote it only after repeated evidence or explicit user instruction.
 
 ## Operating Loop
 
@@ -32,6 +33,18 @@ Read these before planning or changing operating state:
 5. Validate with evidence or explicit assumptions.
 6. Sync state: run `python3 scripts/osctl.py sync` after active-work changes.
 7. Capture learning in `.os_runtime/reflections/` or an improvement candidate.
+
+## Self-Improvement Loop
+
+Run improvements as:
+
+`observe -> capture privately -> synthesize -> evaluate -> promote -> consume`
+
+- Capture reusable lessons with `python3 scripts/osctl.py reflection-capture`.
+- Review repeated patterns with `python3 scripts/osctl.py reflection-review`.
+- Do not change `AGENTS.md`, prompts, schemas, skills, or control-plane rules for a single observation unless the user explicitly asks.
+- Promote the smallest durable surface: validator, schema, skill, prompt, or control-plane field.
+- After a durable change ships, remove the used raw reflections with `python3 scripts/osctl.py reflection-consume`.
 
 ## Risk and Autonomy
 
