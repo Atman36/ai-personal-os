@@ -1,0 +1,57 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-06-10",
+  "board_columns": [
+    "inbox",
+    "this_week",
+    "executing",
+    "waiting",
+    "done",
+    "backlog"
+  ],
+  "workflows": {
+    "daily_ops": {
+      "states": [
+        "this_week",
+        "executing",
+        "done"
+      ],
+      "review": "same day"
+    },
+    "weekly_review": {
+      "states": [
+        "this_week",
+        "executing",
+        "done"
+      ],
+      "review": "weekly"
+    },
+    "decision": {
+      "states": [
+        "inbox",
+        "this_week",
+        "done"
+      ],
+      "review": "decision review date"
+    },
+    "project_delivery": {
+      "states": [
+        "backlog",
+        "this_week",
+        "executing",
+        "waiting",
+        "done"
+      ],
+      "review": "accepts_result"
+    },
+    "self_improvement": {
+      "states": [
+        "inbox",
+        "backlog",
+        "this_week",
+        "done"
+      ],
+      "review": "governor if autonomy expands"
+    }
+  }
+}

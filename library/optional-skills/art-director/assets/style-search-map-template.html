@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Style Search Decision Graph</title>
+  <script src="https://cdn.jsdelivr.net/npm/@dagrejs/dagre@1.1.8/dist/dagre.min.js"></script>
+  <style>
+    :root {
+      --bg: #f7f7f4;
+      --paper: #ffffff;
+      --ink: #171717;
+      --muted: #656565;
+      --line: #d8d8d2;
+      --selected: #0f766e;
+      --rejected: #9f1239;
+      --shown: #525252;
+      --output: #7c3aed;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    header, main { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    header { border-bottom: 1px solid var(--line); }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .meta { margin: 0; color: var(--muted); }
+    .layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+    .summary, .graph-shell, .panel, .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+    }
+    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-bottom: 20px; }
+    .summary > div { padding: 14px; border-right: 1px solid var(--line); }
+    .summary > div:last-child { border-right: 0; }
+    .summary h2 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    .summary p { margin: 0; }
+    .graph-shell { overflow: auto; min-height: 520px; }
+    svg { display: block; min-width: 900px; min-height: 520px; }
+    .edge { fill: none; stroke: #9ca3af; stroke-width: 1.5; }
+    .node rect {
+      fill: #fff;
+      stroke: #a3a3a3;
+      stroke-width: 1.5;
+    }
+    .node.selected rect { stroke: var(--selected); stroke-width: 3; }
+    .node.rejected rect { stroke: var(--rejected); }
+    .node.output rect { stroke: var(--output); }
+    .node text { font-size: 13px; fill: var(--ink); pointer-events: none; }
+    .node .status { font-size: 11px; fill: var(--muted); }
+    .panel { padding: 16px; position: sticky; top: 16px; }
+    .panel h2 { margin: 0 0 8px; font-size: 18px; }
+    .panel dl { margin: 0; display: grid; gap: 10px; }
+    .panel dt { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .panel dd { margin: 0; }
+    .panel img { width: 100%; margin-top: 12px; border: 1px solid var(--line); }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
+    .card { padding: 14px; }
+    .card h3 { margin: 0 0 8px; font-size: 16px; }
+    .badge { display: inline-block; padding: 2px 7px; border: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    @media (max-width: 900px) {
+      .layout, .cards { grid-template-columns: 1fr; }
+      .panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Style Search Decision Graph</h1>
+    <p class="meta">Replace the sample data in this file with the current project clusters.</p>
+  </header>
+  <main>
+    <section class="summary">
+      <div>
+        <h2>Legend</h2>
+        <p><span class="badge">selected</span> chosen path</p>
+        <p><span class="badge">rejected</span> dropped branch</p>
+        <p><span class="badge">output</span> production asset</p>
+      </div>
+      <div>
+        <h2>Current Selection</h2>
+        <p id="current-selection">-</p>
+      </div>
+      <div>
+        <h2>Next Iteration</h2>
+        <p id="next-iteration">-</p>
+      </div>
+    </section>
+    <section class="layout">
+      <div class="graph-shell">
+        <svg id="graph" role="img" aria-label="Style search decision graph"></svg>
+      </div>
+      <aside class="panel" id="node-details">
+        <h2>Selected Node</h2>
+        <dl>
+          <dt>Title</dt><dd id="detail-title">Select a node</dd>
+          <dt>Status</dt><dd id="detail-status">-</dd>
+          <dt>Summary</dt><dd id="detail-summary">Click a node in the graph.</dd>
+        </dl>
+        <img id="detail-image" alt="" hidden>
+      </aside>
+    </section>
+    <section class="cards" id="preview-cards"></section>
+  </main>
+  <script>
+    const styleTreeData = {
+      clusters: [
+        {
+          id: "v1",
+          title: "V1 - First exploration",
+          brief: "Explore three distinct visual systems for the media asset.",
+          looked_at: "V1-A, V1-B, V1-C",
+          selected: "v1-b",
+          carry_forward: "High-contrast type, structured grid, visible production cues.",
+          drop: "Soft generic abstractions.",
+          feedback: {
+            target: "v1-b",
+            safe_summary: "Reviewer prefers the sharper editorial direction.",
+            interpretation: "Push the editorial system in V2."
+          },
+          terminal_status: "needs-feedback",
+          options: [
+            { id: "v1-a", title: "V1-A - Soft editorial", status: "shown", summary: "A quiet layout with light texture." },
+            { id: "v1-b", title: "V1-B - Sharp editorial", status: "selected", summary: "Strong type, grid, and production evidence.", preview: "assets/v01-style-search/v1-b.png" },
+            { id: "v1-c", title: "V1-C - System diagram", status: "rejected", summary: "Too diagrammatic for the target asset." }
+          ],
+          next: "v2"
+        },
+        {
+          id: "v2",
+          parent: "v1",
+          title: "V2 - Editorial expansion",
+          brief: "Expand the selected sharp editorial direction.",
+          looked_at: "V2-A, V2-B, V2-C",
+          selected: "v2-a",
+          carry_forward: "Sharp type, dense grid, restrained color.",
+          drop: "Decorative texture that hides the message.",
+          terminal_status: "selected-final",
+          options: [
+            { id: "v2-a", title: "V2-A - Final system", status: "selected", summary: "Best balance of readability and character." },
+            { id: "v2-b", title: "V2-B - Dense poster", status: "shown", summary: "Useful reference, too loud for final." },
+            { id: "v2-c", title: "V2-C - Minimal proof", status: "shown", summary: "Clean but less distinctive." }
+          ]
+        }
+      ]
+    };
+
+    const graphEl = document.getElementById("graph");
+    const cardsEl = document.getElementById("preview-cards");
+    const detailTitle = document.getElementById("detail-title");
+    const detailStatus = document.getElementById("detail-status");
+    const detailSummary = document.getElementById("detail-summary");
+    const detailImage = document.getElementById("detail-image");
+    const currentSelection = document.getElementById("current-selection");
+    const nextIteration = document.getElementById("next-iteration");
+
+    const nodes = [];
+    const edges = [];
+    styleTreeData.clusters.forEach((cluster) => {
+      nodes.push({
+        id: cluster.id,
+        title: cluster.title,
+        status: cluster.terminal_status || "cluster",
+        summary: cluster.brief
+      });
+      if (cluster.parent) edges.push([cluster.parent, cluster.id]);
+      cluster.options.forEach((option) => {
+        nodes.push({ ...option, cluster: cluster.id });
+        edges.push([cluster.id, option.id]);
+        if (option.id === cluster.selected && cluster.next) edges.push([option.id, cluster.next]);
+      });
+    });
+
+    const g = new dagre.graphlib.Graph();
+    g.setGraph({ rankdir: "LR", nodesep: 40, ranksep: 80, marginx: 30, marginy: 30 });
+    g.setDefaultEdgeLabel(() => ({}));
+    nodes.forEach((node) => g.setNode(node.id, { width: 190, height: 72, node }));
+    edges.forEach(([from, to]) => g.setEdge(from, to));
+    dagre.layout(g);
+
+    const graph = g.graph();
+    graphEl.setAttribute("viewBox", `0 0 ${graph.width + 80} ${graph.height + 80}`);
+
+    g.edges().forEach((edge) => {
+      const points = g.edge(edge).points;
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("class", "edge");
+      path.setAttribute("d", points.map((point, index) => `${index === 0 ? "M" : "L"}${point.x},${point.y}`).join(" "));
+      graphEl.appendChild(path);
+    });
+
+    nodes.forEach((node) => {
+      const layout = g.node(node.id);
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      group.setAttribute("class", `node ${node.status || "shown"}`);
+      group.setAttribute("transform", `translate(${layout.x - layout.width / 2},${layout.y - layout.height / 2})`);
+      group.setAttribute("tabindex", "0");
+      group.addEventListener("click", () => showDetails(node));
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.setAttribute("width", layout.width);
+      rect.setAttribute("height", layout.height);
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      title.setAttribute("x", 12);
+      title.setAttribute("y", 28);
+      title.textContent = node.title.length > 26 ? `${node.title.slice(0, 25)}...` : node.title;
+      const status = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      status.setAttribute("class", "status");
+      status.setAttribute("x", 12);
+      status.setAttribute("y", 52);
+      status.textContent = node.status || "shown";
+      group.append(rect, title, status);
+      graphEl.appendChild(group);
+    });
+
+    styleTreeData.clusters.flatMap((cluster) => cluster.options).forEach((option) => {
+      const card = document.createElement("article");
+      card.className = "card";
+      const title = document.createElement("h3");
+      title.textContent = option.title;
+      const summary = document.createElement("p");
+      summary.textContent = option.summary || "";
+      const status = document.createElement("span");
+      status.className = "badge";
+      status.textContent = option.status;
+      card.append(title, summary, status);
+      if (option.preview) {
+        const path = document.createElement("p");
+        path.textContent = `Preview path: ${option.preview}`;
+        card.appendChild(path);
+      }
+      cardsEl.appendChild(card);
+    });
+
+    function showDetails(node) {
+      detailTitle.textContent = node.title;
+      detailStatus.textContent = node.status || "shown";
+      detailSummary.textContent = node.summary || "No summary yet.";
+      if (node.preview) {
+        detailImage.src = node.preview;
+        detailImage.alt = node.title;
+        detailImage.hidden = false;
+      } else {
+        detailImage.removeAttribute("src");
+        detailImage.alt = "";
+        detailImage.hidden = true;
+      }
+    }
+
+    const terminalCluster = styleTreeData.clusters[styleTreeData.clusters.length - 1];
+    currentSelection.textContent = terminalCluster.selected || "No selection yet.";
+    nextIteration.textContent = terminalCluster.next || terminalCluster.terminal_status || "No next step recorded.";
+    showDetails(nodes[0]);
+  </script>
+</body>
+</html>

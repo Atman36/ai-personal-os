@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "entity_type",
+    "id",
+    "thread_id",
+    "run_id",
+    "mission_id",
+    "key",
+    "actor",
+    "status",
+    "error_type",
+    "retry_count",
+    "allowed_tool_classes",
+    "policy_action",
+    "policy_context",
+    "summary",
+    "evidence",
+    "metadata",
+    "created_at",
+    "updated_at",
+    "completed_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "entity_type": {
+      "type": "string",
+      "const": "step"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "thread_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mission_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actor": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "running",
+        "completed",
+        "blocked",
+        "waiting_approval",
+        "failed",
+        "skipped"
+      ]
+    },
+    "error_type": {
+      "type": "string",
+      "enum": [
+        "",
+        "transient",
+        "recoverable",
+        "user_fixable",
+        "unexpected"
+      ]
+    },
+    "retry_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "allowed_tool_classes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "policy_action": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "allow_with_review",
+        "pause_for_founder_approval",
+        "block"
+      ]
+    },
+    "policy_context": {
+      "type": "object"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string"
+    }
+  }
+}

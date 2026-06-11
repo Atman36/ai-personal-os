@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-06-10",
+  "autonomy_tiers": {
+    "A0": "advisory_only",
+    "A1": "draft_and_prepare",
+    "A2": "internal_execution",
+    "A3": "external_action_with_review",
+    "A4": "human_only"
+  },
+  "risk_tiers": [
+    "low",
+    "medium",
+    "high"
+  ],
+  "wip_limits": {
+    "active_projects": 3,
+    "active_tasks": 5
+  },
+  "requires_user_approval": [
+    "external_send",
+    "spend_money",
+    "delete_data",
+    "publish_publicly",
+    "legal_commitment",
+    "credential_change",
+    "customer_data_use"
+  ],
+  "governor_required_for": [
+    "high_risk",
+    "A3",
+    "A4",
+    "privacy_sensitive",
+    "destructive",
+    "public_claim",
+    "money_or_legal"
+  ]
+}

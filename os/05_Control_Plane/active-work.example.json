@@ -1,0 +1,82 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-06-10",
+  "operating_mode": "personal-os-bootstrap",
+  "objective": "Stand up a Codex-based Personal OS that can decide, plan, delegate, and improve.",
+  "tasks": [
+    {
+      "id": "clarify-personal-os-charter",
+      "title": "Сформулировать North Star и первый реальный use case Personal OS",
+      "status": "this_week",
+      "project": "Personal OS Bootstrap",
+      "manager": "chief_of_staff",
+      "owner": "ceo",
+      "accepts_result": "user",
+      "risk": "low",
+      "autonomy": "A1",
+      "workflow": "decision",
+      "next": "Запустить `.codex/prompts/decision.md` и выбрать первый проект, который OS будет вести.",
+      "done_when": "Есть decision brief: какой проект ведём первым, почему, какие метрики успеха и что не делаем.",
+      "primary_update_file": "os/now.md",
+      "support": [
+        "strategy_council",
+        "ai_ops_lead"
+      ],
+      "tags": [
+        "bootstrap",
+        "strategy"
+      ],
+      "created_at": "2026-06-10",
+      "updated_at": "2026-06-10"
+    },
+    {
+      "id": "run-first-daily-start",
+      "title": "Провести первый daily start в Codex",
+      "status": "executing",
+      "project": "Personal OS Bootstrap",
+      "manager": "ai_ops_lead",
+      "owner": "chief_of_staff",
+      "accepts_result": "user",
+      "risk": "low",
+      "autonomy": "A2",
+      "workflow": "daily_ops",
+      "next": "Открыть Codex и выполнить prompt из `.codex/prompts/daily-start.md`.",
+      "done_when": "Codex выдал Top-3 действий, нашёл блокеры и синхронизировал Task Board.",
+      "primary_update_file": "os/02_Planning/Task_Board.md",
+      "support": [
+        "memory_steward"
+      ],
+      "tags": [
+        "bootstrap",
+        "cadence"
+      ],
+      "created_at": "2026-06-10",
+      "updated_at": "2026-06-10"
+    },
+    {
+      "id": "choose-first-tool-connector",
+      "title": "Выбрать первый инструментальный коннектор после локального контура",
+      "status": "backlog",
+      "project": "Personal OS Bootstrap",
+      "manager": "ai_ops_lead",
+      "owner": "architect",
+      "accepts_result": "governor",
+      "risk": "medium",
+      "autonomy": "A1",
+      "workflow": "architecture_decision",
+      "next": "Сравнить GitHub, Calendar, Obsidian, Email/Telegram как первый connector.",
+      "done_when": "Есть brief с выбранным первым connector, разрешёнными действиями, deny-list, approval gates и audit log.",
+      "primary_update_file": "docs/MCP_PLAN.md",
+      "support": [
+        "governor",
+        "chief_of_staff"
+      ],
+      "tags": [
+        "tools",
+        "mcp"
+      ],
+      "created_at": "2026-06-10",
+      "updated_at": "2026-06-10"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+interface:
+  display_name: Personal OS Gateway
+  short_description: Front door for routing, planning, decisions, and active-work updates in a Codex-based Personal OS.
+  icon: 🧭
+  brand_color: "#2563eb"

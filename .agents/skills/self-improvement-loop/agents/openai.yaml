@@ -1,0 +1,4 @@
+interface:
+  display_name: "Self-Improvement Loop"
+  short_description: "Capture, synthesize, promote, and consume HQ reflection signals"
+  default_prompt: "Use $self-improvement-loop to process HQ reflections, promote only validated improvements, and delete consumed active reflection records."

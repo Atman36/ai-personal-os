@@ -1,0 +1,5 @@
+interface:
+  display_name: Personal OS Decision Brief
+  short_description: Converts strategic and operating choices into reviewable decision briefs with tradeoffs and next steps.
+  icon: ⚖️
+  brand_color: "#7c3aed"

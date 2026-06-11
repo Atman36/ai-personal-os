@@ -1,0 +1,4 @@
+interface:
+  display_name: "HQ Spec/Handoff"
+  short_description: "Create or refresh private HQ spec and handoff packets"
+  default_prompt: "Use $hq-spec-handoff-writer to write a bounded .hq spec or handoff packet for the current task."

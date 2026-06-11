@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "string_list": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "review_gate": {
+      "type": "object",
+      "required": [
+        "id",
+        "owner",
+        "when",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "telemetry_event": {
+          "type": "string",
+          "minLength": 1
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "$ref": "#/$defs/string_list"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "required": [
+    "version",
+    "updated_at",
+    "board_columns",
+    "telemetry",
+    "workflows"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "board_columns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "telemetry": {
+      "type": "object",
+      "required": [
+        "event_types",
+        "statuses",
+        "event_sets",
+        "status_sets"
+      ],
+      "properties": {
+        "event_types": {
+          "$ref": "#/$defs/string_list"
+        },
+        "statuses": {
+          "$ref": "#/$defs/string_list"
+        },
+        "event_sets": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/string_list"
+          }
+        },
+        "status_sets": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/string_list"
+          }
+        }
+      }
+    },
+    "workflows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "purpose",
+          "states",
+          "required_task_fields",
+          "transition_owners"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "states": {
+            "$ref": "#/$defs/string_list"
+          },
+          "required_task_fields": {
+            "$ref": "#/$defs/string_list"
+          },
+          "required_telemetry_events": {
+            "$ref": "#/$defs/string_list"
+          },
+          "acceptance_evidence": {
+            "$ref": "#/$defs/string_list"
+          },
+          "transition_owners": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "review_gates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/review_gate"
+            }
+          }
+        }
+      }
+    }
+  }
+}

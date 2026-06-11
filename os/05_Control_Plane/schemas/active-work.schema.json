@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "non_empty_string": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "type": "object",
+  "required": [
+    "version",
+    "updated_at",
+    "operating_mode",
+    "objective",
+    "tasks"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "operating_mode": {
+      "$ref": "#/$defs/non_empty_string"
+    },
+    "objective": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "window"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "title": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "window": {
+          "type": "object",
+          "required": [
+            "start",
+            "target_end"
+          ],
+          "properties": {
+            "start": {
+              "type": "string",
+              "format": "date"
+            },
+            "target_end": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        },
+        "success_criteria": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/non_empty_string"
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "column",
+          "manager",
+          "owner",
+          "project",
+          "next_step",
+          "done_when",
+          "primary_update_file",
+          "accepts_result",
+          "risk_tier",
+          "autonomy_tier",
+          "workflow"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "title": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "column": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "manager": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "owner": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "accepts_result": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "project": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "next_step": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "done_when": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "primary_update_file": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "risk_tier": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "autonomy_tier": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "workflow": {
+            "$ref": "#/$defs/non_empty_string"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date"
+          },
+          "support": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/non_empty_string"
+            }
+          },
+          "align_files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/non_empty_string"
+            }
+          },
+          "task_cycle_required": {
+            "type": "boolean"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "column": {
+                  "const": "done"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "completed_at"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

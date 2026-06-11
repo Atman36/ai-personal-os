@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "threshold": {
+      "type": "object",
+      "required": [
+        "comparison",
+        "value"
+      ],
+      "properties": {
+        "comparison": {
+          "type": "string",
+          "enum": [
+            "<",
+            "<=",
+            "=",
+            ">=",
+            ">"
+          ]
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "required": [
+        "id",
+        "definition",
+        "source",
+        "unit",
+        "review_cadence",
+        "review_owner"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_cadence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "threshold": {
+          "$ref": "#/$defs/threshold"
+        },
+        "action_if_breached": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "required": [
+    "version",
+    "updated_at",
+    "primary_metrics",
+    "secondary_metrics"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "primary_metrics": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "$ref": "#/$defs/metric"
+      }
+    },
+    "secondary_metrics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/metric"
+      }
+    }
+  }
+}

@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "verificationStage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "participant"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "review",
+            "approval"
+          ]
+        },
+        "participant": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "entity_type",
+    "id",
+    "thread_id",
+    "mission_id",
+    "status",
+    "actor",
+    "loop",
+    "current_step_id",
+    "resume_from_step_id",
+    "last_successful_step_id",
+    "step_ids",
+    "approval_ids",
+    "handoff_ids",
+    "artifact_ids",
+    "checkpoint_count",
+    "latest_checkpoint_id",
+    "latest_checkpoint_path",
+    "resume_status_path",
+    "interruption_state",
+    "execution_context",
+    "verification_state",
+    "trace_state",
+    "started_at",
+    "finished_at",
+    "created_at",
+    "updated_at",
+    "metadata"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "entity_type": {
+      "type": "string",
+      "const": "run"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "thread_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mission_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "waiting_approval",
+        "interrupted",
+        "completed",
+        "failed",
+        "blocked",
+        "cancelled"
+      ]
+    },
+    "actor": {
+      "type": "string"
+    },
+    "loop": {
+      "type": "string"
+    },
+    "current_step_id": {
+      "type": "string"
+    },
+    "resume_from_step_id": {
+      "type": "string"
+    },
+    "last_successful_step_id": {
+      "type": "string"
+    },
+    "step_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "approval_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "handoff_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "artifact_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "verification_stages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/verificationStage"
+      }
+    },
+    "checkpoint_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "latest_checkpoint_id": {
+      "type": "string"
+    },
+    "latest_checkpoint_path": {
+      "type": "string"
+    },
+    "resume_status_path": {
+      "type": "string"
+    },
+    "interruption_state": {
+      "type": "object"
+    },
+    "execution_context": {
+      "type": "object"
+    },
+    "verification_state": {
+      "type": "object"
+    },
+    "trace_state": {
+      "type": "object"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  }
+}

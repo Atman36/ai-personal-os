@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "entity_type",
+    "id",
+    "thread_id",
+    "title",
+    "goal",
+    "workflow",
+    "project",
+    "owner",
+    "manager",
+    "accepts_result",
+    "source_task_id",
+    "status",
+    "latest_run_id",
+    "run_ids",
+    "created_at",
+    "updated_at",
+    "metadata"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "entity_type": {
+      "type": "string",
+      "const": "mission"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "thread_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "goal": {
+      "type": "string"
+    },
+    "workflow": {
+      "type": "string"
+    },
+    "project": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "manager": {
+      "type": "string"
+    },
+    "accepts_result": {
+      "type": "string"
+    },
+    "source_task_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "active",
+        "completed",
+        "failed",
+        "blocked",
+        "cancelled"
+      ]
+    },
+    "latest_run_id": {
+      "type": "string"
+    },
+    "run_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  }
+}

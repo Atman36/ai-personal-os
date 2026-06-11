@@ -1,0 +1,50 @@
+# ──────────────────────────────────────────────────────────────────────────
+# Personal OS — .gitignore
+#
+# This is a PUBLIC repo. It ships the FRAMEWORK only:
+# skills, agents, scripts, schemas, templates, docs, and *.example seeds.
+#
+# Your PERSONAL data (filled-in focus, projects, decisions, task queue) and
+# any BUILD/META notes about creating the OS itself stay LOCAL — never pushed.
+#
+# Fresh clone: `python3 scripts/osctl.py init` recreates the live files from
+# the committed *.example templates.
+# ──────────────────────────────────────────────────────────────────────────
+
+# ── System / tooling ──
+.DS_Store
+*.log
+__pycache__/
+*.pyc
+.env
+.env.*
+
+# ── Private runtime: handoffs, reflections, telemetry, temp context ──
+.os_runtime/
+
+# ── Personal live state (seeded from *.example, kept out of git) ──
+os/now.md
+os/projects.md
+os/02_Planning/Backlog.md
+os/02_Planning/Weekly_Plan.md
+os/02_Planning/Task_Board.md
+os/03_Decisions/Decisions.md
+os/03_Decisions/Open_Decisions.md
+os/05_Control_Plane/active-work.json
+
+# Generated dated decision briefs (e.g. 2026-06-11-choose-first-project.md)
+os/03_Decisions/[0-9][0-9][0-9][0-9]-*.md
+
+# Personal project pages — keep only the template and the folder README
+os/04_Projects/*
+!os/04_Projects/Project_Template.md
+!os/04_Projects/README.md
+
+# ── Build / meta notes about creating the OS itself ──
+/_meta/
+/private/
+SESSION_*.md
+*.session.md
+CONTINUITY.md
+*.local.md
+*.draft.md

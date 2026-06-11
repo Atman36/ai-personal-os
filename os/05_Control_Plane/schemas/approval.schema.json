@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "entity_type",
+    "id",
+    "thread_id",
+    "mission_id",
+    "run_id",
+    "step_id",
+    "requested_by",
+    "requested_for",
+    "policy_action",
+    "approval_key",
+    "status",
+    "decision",
+    "tool_scope",
+    "policy_context",
+    "summary",
+    "rationale",
+    "requested_at",
+    "updated_at",
+    "decided_at",
+    "decided_by",
+    "metadata"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "entity_type": {
+      "type": "string",
+      "const": "approval"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "thread_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mission_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "step_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requested_by": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requested_for": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_action": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "allow_with_review",
+        "pause_for_founder_approval",
+        "block"
+      ]
+    },
+    "approval_key": {
+      "type": "object"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "decided"
+      ]
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "",
+        "approved",
+        "rejected",
+        "blocked"
+      ]
+    },
+    "tool_scope": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "policy_context": {
+      "type": "object"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "rationale": {
+      "type": "string"
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "decided_at": {
+      "type": "string"
+    },
+    "decided_by": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  }
+}

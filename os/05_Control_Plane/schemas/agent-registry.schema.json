@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "string_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "capability_route": {
+      "type": "object",
+      "required": [
+        "id",
+        "purpose",
+        "primary_role",
+        "manager",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manager": {
+          "type": "string",
+          "minLength": 1
+        },
+        "support_roles": {
+          "$ref": "#/$defs/string_list"
+        },
+        "evidence": {
+          "$ref": "#/$defs/string_list"
+        }
+      }
+    },
+    "principal_contract": {
+      "type": "object",
+      "required": [
+        "purpose",
+        "required_identity_fields",
+        "default_constraints"
+      ],
+      "properties": {
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_identity_fields": {
+          "$ref": "#/$defs/string_list"
+        },
+        "default_constraints": {
+          "$ref": "#/$defs/string_list"
+        }
+      }
+    },
+    "capability_grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role_id",
+        "tool_classes",
+        "resource_scopes",
+        "approval_class",
+        "max_autonomy_tier",
+        "memory_boundary",
+        "delegation_scope"
+      ],
+      "properties": {
+        "role_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_classes": {
+          "$ref": "#/$defs/string_list"
+        },
+        "resource_scopes": {
+          "$ref": "#/$defs/string_list"
+        },
+        "approval_class": {
+          "type": "string",
+          "enum": [
+            "auto_low_risk",
+            "human_before_external",
+            "required_review",
+            "founder_only",
+            "forbidden_without_explicit_approval"
+          ]
+        },
+        "max_autonomy_tier": {
+          "type": "string",
+          "minLength": 1
+        },
+        "memory_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "delegation_scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "required": [
+    "version",
+    "updated_at",
+    "roles"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "principal_contract": {
+      "$ref": "#/$defs/principal_contract"
+    },
+    "roles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "display_name",
+          "role_type",
+          "default_autonomy_tier",
+          "mission"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role_type": {
+            "type": "string",
+            "enum": [
+              "human",
+              "ai"
+            ]
+          },
+          "default_autonomy_tier": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mission": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owns": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "legacy_aliases": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "escalates_to": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "capability_routing": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/capability_route"
+      }
+    },
+    "capability_grants": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/capability_grant"
+      }
+    }
+  }
+}

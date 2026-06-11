@@ -1,0 +1,54 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-06-10",
+  "roles": {
+    "chief_of_staff": {
+      "purpose": "coordination and priority filtering",
+      "default_autonomy": "A1"
+    },
+    "ai_ops_lead": {
+      "purpose": "queue, cadence, delegation, telemetry",
+      "default_autonomy": "A2"
+    },
+    "ceo": {
+      "purpose": "strategy and priority decisions",
+      "default_autonomy": "A0"
+    },
+    "governor": {
+      "purpose": "risk and approvals",
+      "default_autonomy": "A0"
+    },
+    "strategy_council": {
+      "purpose": "independent strategic perspectives",
+      "default_autonomy": "A0"
+    },
+    "project_manager": {
+      "purpose": "plans, milestones, dependencies",
+      "default_autonomy": "A1"
+    },
+    "product_manager": {
+      "purpose": "PRD, stories, metrics, roadmap",
+      "default_autonomy": "A1"
+    },
+    "researcher": {
+      "purpose": "evidence and assumptions",
+      "default_autonomy": "A0"
+    },
+    "architect": {
+      "purpose": "systems and tooling design",
+      "default_autonomy": "A1"
+    },
+    "executor": {
+      "purpose": "scoped implementation",
+      "default_autonomy": "A2"
+    },
+    "evidence_reviewer": {
+      "purpose": "independent acceptance review",
+      "default_autonomy": "A0"
+    },
+    "memory_steward": {
+      "purpose": "context hygiene and improvement loop",
+      "default_autonomy": "A1"
+    }
+  }
+}

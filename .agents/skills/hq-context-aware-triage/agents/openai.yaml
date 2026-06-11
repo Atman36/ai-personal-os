@@ -1,0 +1,4 @@
+interface:
+  display_name: "HQ Triage"
+  short_description: "Turn broad HQ work into a complete control-plane task contract"
+  default_prompt: "Use $hq-context-aware-triage to classify this work into owner, workflow, risk, autonomy, acceptance, and next step."

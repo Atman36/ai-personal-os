@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-06-10",
+  "primary_metrics": [
+    {
+      "id": "decision_latency",
+      "name": "Time from open decision to next test"
+    },
+    {
+      "id": "task_throughput",
+      "name": "Done tasks per week"
+    },
+    {
+      "id": "wip_overload",
+      "name": "Active task count vs WIP limit"
+    },
+    {
+      "id": "stale_tasks",
+      "name": "Tasks not updated in 7 days"
+    },
+    {
+      "id": "improvement_candidates",
+      "name": "Useful OS improvements found per week"
+    }
+  ]
+}
