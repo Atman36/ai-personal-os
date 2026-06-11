@@ -16,6 +16,10 @@ No external dependencies. Commands:
                 Summarize repeated private lessons without promoting them.
   reflection-consume
                 Remove active private lessons after a durable improvement ships.
+  run-start      Start a run record under .os_runtime/runs/YYYY-MM/.
+  run-step       Append a step to an active run record.
+  run-finish     Finish a run with status, verification, and artifacts.
+  run-receipt    Render a Markdown receipt next to the run record.
 """
 from __future__ import annotations
 
@@ -58,6 +62,12 @@ STANDARD_NOTE_TYPES = {
     "meeting", "decision", "research", "draft", "rule", "prd", "guide",
     "transcript", "skill", "overview", "task", "spec", "review", "plan",
 }
+# Local run records (Task 01): a small subset of schemas/run.schema.json that
+# stays sufficient for resume/inspect without the full harness contract.
+RUN_REQUIRED = ["run_id", "task_id", "workflow", "actor", "status", "started_at", "updated_at", "artifact_paths", "verification", "approval_ids"]
+RUN_FINAL_STATUSES = {"completed", "failed", "cancelled"}
+RUN_STATUSES = RUN_FINAL_STATUSES | {"running", "waiting_approval", "blocked"}
+STEP_STATUSES = {"completed", "failed", "blocked", "skipped"}
 NOTE_NAME_RE = re.compile(
     r"^(?:\{(?P<project>[A-Z0-9][A-Z0-9_-]*)\} )?"
     r"\{(?P<type>[a-z][a-z0-9_-]*)\} "
@@ -566,6 +576,134 @@ def cmd_reflection_consume(args: argparse.Namespace) -> None:
     print(f"Consumed {len(consumed)} reflection(s); receipt: {path.relative_to(ROOT)}")
 
 
+def runs_dir() -> Path:
+    return RUNTIME / "runs"
+
+
+def run_artifacts_dir(run_id: str) -> Path:
+    return RUNTIME / "artifacts" / run_id
+
+
+def validate_run_record(record: Dict[str, Any]) -> List[str]:
+    errors = [f"missing {field}" for field in RUN_REQUIRED if field not in record]
+    if "status" in record and record["status"] not in RUN_STATUSES:
+        errors.append(f"invalid status {record['status']!r}")
+    return errors
+
+
+def find_run_record(run_id: str) -> Path:
+    if runs_dir().exists():
+        for path in sorted(runs_dir().glob(f"*/{run_id}.json")):
+            return path
+    raise SystemExit(f"Run not found: {run_id}")
+
+
+def load_run(run_id: str) -> tuple[Path, Dict[str, Any]]:
+    path = find_run_record(run_id)
+    return path, json.loads(path.read_text(encoding="utf-8"))
+
+
+def save_run(path: Path, record: Dict[str, Any]) -> None:
+    record["updated_at"] = utc_timestamp()
+    errors = validate_run_record(record)
+    if errors:
+        raise SystemExit("Invalid run record: " + "; ".join(errors))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def cmd_run_start(args: argparse.Namespace) -> None:
+    run_id = normalize_text(args.run_id) or f"run-{now()}-{uuid.uuid4().hex[:8]}"
+    if runs_dir().exists() and any(runs_dir().glob(f"*/{run_id}.json")):
+        raise SystemExit(f"Run id already exists: {run_id}")
+    started = utc_timestamp()
+    record = {
+        "run_id": run_id,
+        "task_id": args.task,
+        "workflow": args.workflow,
+        "actor": args.actor,
+        "status": "running",
+        "started_at": started,
+        "updated_at": started,
+        "finished_at": "",
+        "steps": [],
+        "artifact_paths": [],
+        "verification": {"summary": "", "evidence": []},
+        "approval_ids": [],
+    }
+    path = runs_dir() / started[:7] / f"{run_id}.json"
+    save_run(path, record)
+    run_artifacts_dir(run_id).mkdir(parents=True, exist_ok=True)
+    print(f"Started run {run_id}")
+    print(f"Record: {path.relative_to(ROOT)}")
+    print(f"Artifacts: {run_artifacts_dir(run_id).relative_to(ROOT)}")
+
+
+def cmd_run_step(args: argparse.Namespace) -> None:
+    path, record = load_run(args.run)
+    if record.get("status") in RUN_FINAL_STATUSES:
+        raise SystemExit(f"Run {args.run} is already {record['status']}; cannot append steps")
+    step = {
+        "index": len(record.get("steps", [])) + 1,
+        "summary": args.summary,
+        "status": args.status,
+        "evidence": normalize_list(args.evidence),
+        "created_at": utc_timestamp(),
+    }
+    record.setdefault("steps", []).append(step)
+    save_run(path, record)
+    print(f"Appended step {step['index']} to {path.relative_to(ROOT)}")
+
+
+def cmd_run_finish(args: argparse.Namespace) -> None:
+    path, record = load_run(args.run)
+    record["status"] = args.status
+    record["finished_at"] = utc_timestamp()
+    record["verification"] = {"summary": normalize_text(args.verification), "evidence": normalize_list(args.evidence)}
+    record["artifact_paths"] = normalize_list(list(record.get("artifact_paths") or []) + list(args.artifact or []))
+    record["approval_ids"] = normalize_list(list(record.get("approval_ids") or []) + list(args.approval_id or []))
+    save_run(path, record)
+    print(f"Finished run {args.run} as {args.status}")
+    print(f"Record: {path.relative_to(ROOT)}")
+
+
+def render_run_receipt(record: Dict[str, Any]) -> str:
+    verification = record.get("verification") or {}
+    lines = [
+        f"# Run Receipt: {record['run_id']}",
+        "",
+        f"- Task: {record['task_id']}",
+        f"- Workflow: {record['workflow']}",
+        f"- Actor: {record['actor']}",
+        f"- Status: {record['status']}",
+        f"- Started At: {record['started_at']}",
+        f"- Finished At: {record.get('finished_at') or 'in progress'}",
+        f"- Verification: {verification.get('summary') or 'none recorded'}",
+        "",
+        "## Steps",
+        "",
+    ]
+    steps = record.get("steps") or []
+    for step in steps:
+        lines.append(f"{step.get('index')}. [{step.get('status')}] {step.get('summary')}")
+        for item in step.get("evidence") or []:
+            lines.append(f"   - evidence: {item}")
+    if not steps:
+        lines.append("None.")
+    lines += ["", "## Artifacts", ""]
+    lines += [f"- `{p}`" for p in record.get("artifact_paths") or []] or ["None."]
+    lines += ["", "## Approvals", ""]
+    lines += [f"- {a}" for a in record.get("approval_ids") or []] or ["None."]
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def cmd_run_receipt(args: argparse.Namespace) -> None:
+    path, record = load_run(args.run)
+    receipt = path.with_name(f"{record['run_id']}-receipt.md")
+    receipt.write_text(render_run_receipt(record), encoding="utf-8")
+    print(f"Receipt: {receipt.relative_to(ROOT)}")
+
+
 def cmd_init(_: argparse.Namespace) -> None:
     seeded: List[str] = []
     for example_rel, live_rel in SEED_PAIRS:
@@ -795,6 +933,29 @@ def main() -> None:
     consume.add_argument("--issue-key", required=True)
     consume.add_argument("--reason", required=True)
     consume.set_defaults(func=cmd_reflection_consume)
+    run_start = sub.add_parser("run-start")
+    run_start.add_argument("--task", required=True)
+    run_start.add_argument("--workflow", default="task")
+    run_start.add_argument("--actor", default="local-agent")
+    run_start.add_argument("--run-id")
+    run_start.set_defaults(func=cmd_run_start)
+    run_step = sub.add_parser("run-step")
+    run_step.add_argument("--run", required=True)
+    run_step.add_argument("--summary", required=True)
+    run_step.add_argument("--status", choices=sorted(STEP_STATUSES), default="completed")
+    run_step.add_argument("--evidence", action="append")
+    run_step.set_defaults(func=cmd_run_step)
+    run_finish = sub.add_parser("run-finish")
+    run_finish.add_argument("--run", required=True)
+    run_finish.add_argument("--status", choices=sorted(RUN_FINAL_STATUSES | {"blocked"}), default="completed")
+    run_finish.add_argument("--verification", default="")
+    run_finish.add_argument("--evidence", action="append")
+    run_finish.add_argument("--artifact", action="append")
+    run_finish.add_argument("--approval-id", action="append")
+    run_finish.set_defaults(func=cmd_run_finish)
+    run_receipt = sub.add_parser("run-receipt")
+    run_receipt.add_argument("--run", required=True)
+    run_receipt.set_defaults(func=cmd_run_receipt)
     args = parser.parse_args()
     args.func(args)
 

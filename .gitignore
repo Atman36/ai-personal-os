@@ -2,7 +2,7 @@
 # Personal OS — .gitignore
 #
 # This is a PUBLIC repo. It ships the FRAMEWORK only:
-# skills, agents, scripts, schemas, templates, docs, and *.example seeds.
+# skills, agents, scripts, schemas, templates, and *.example seeds.
 #
 # Your PERSONAL data (filled-in focus, projects, decisions, task queue) and
 # any BUILD/META notes about creating the OS itself stay LOCAL — never pushed.
@@ -22,6 +22,10 @@ __pycache__/
 # ── Private runtime: handoffs, reflections, telemetry, temp context ──
 .os_runtime/
 
+# ── Internal docs and research notes (kept out of the public repo) ──
+docs/
+research/
+
 # ── Personal live state (seeded from *.example, kept out of git) ──
 os/now.md
 os/projects.md
@@ -32,7 +36,9 @@ os/03_Decisions/Decisions.md
 os/03_Decisions/Open_Decisions.md
 os/05_Control_Plane/active-work.json
 
-# Generated dated decision briefs (e.g. 2026-06-11-choose-first-project.md)
+# Generated decision briefs (Personal OS naming convention)
+os/03_Decisions/{decision}*.md
+# Legacy generated dated decision briefs (e.g. 2026-06-11-choose-first-project.md)
 os/03_Decisions/[0-9][0-9][0-9][0-9]-*.md
 
 # Personal project pages — keep only the template and the folder README

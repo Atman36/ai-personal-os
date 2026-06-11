@@ -210,6 +210,73 @@ class OsctlTests(unittest.TestCase):
         self.assertEqual(result["total_reflections"], 0)
         self.assertEqual(len(receipts), 1)
 
+    def start_run(self, run_id: str = "run-test") -> None:
+        self.osctl.cmd_run_start(
+            argparse.Namespace(task="task-1", workflow="task", actor="claude-code", run_id=run_id)
+        )
+
+    def finish_run(self, run_id: str = "run-test") -> None:
+        self.osctl.cmd_run_finish(
+            argparse.Namespace(
+                run=run_id,
+                status="completed",
+                verification="unittest suite green",
+                evidence=["python3 -m unittest discover -s tests"],
+                artifact=[".os_runtime/artifacts/run-test/report.md"],
+                approval_id=None,
+            )
+        )
+
+    def test_run_lifecycle_start_step_finish_receipt(self) -> None:
+        self.start_run()
+
+        record_path = next((self.osctl.RUNTIME / "runs").glob("*/run-test.json"))
+        self.assertTrue((self.osctl.RUNTIME / "artifacts/run-test").is_dir())
+
+        self.osctl.cmd_run_step(
+            argparse.Namespace(run="run-test", summary="Implemented the change.", status="completed", evidence=["diff reviewed"])
+        )
+        self.finish_run()
+
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        for field in self.osctl.RUN_REQUIRED:
+            self.assertIn(field, record)
+        self.assertEqual(record["status"], "completed")
+        self.assertEqual(len(record["steps"]), 1)
+        self.assertTrue(record["finished_at"])
+        self.assertEqual(record["verification"]["summary"], "unittest suite green")
+        self.assertEqual(record["artifact_paths"], [".os_runtime/artifacts/run-test/report.md"])
+
+        self.osctl.cmd_run_receipt(argparse.Namespace(run="run-test"))
+        receipt = record_path.with_name("run-test-receipt.md")
+        self.assertTrue(receipt.exists())
+        content = receipt.read_text(encoding="utf-8")
+        self.assertIn("# Run Receipt: run-test", content)
+        self.assertIn("Implemented the change.", content)
+
+    def test_run_step_rejects_unknown_run(self) -> None:
+        with self.assertRaises(SystemExit):
+            self.osctl.cmd_run_step(
+                argparse.Namespace(run="missing-run", summary="No run.", status="completed", evidence=None)
+            )
+
+    def test_run_step_rejects_finished_run(self) -> None:
+        self.start_run()
+        self.finish_run()
+
+        with self.assertRaises(SystemExit):
+            self.osctl.cmd_run_step(
+                argparse.Namespace(run="run-test", summary="Too late.", status="completed", evidence=None)
+            )
+
+    def test_run_record_validation_flags_missing_required_fields(self) -> None:
+        record = {"run_id": "run-x", "status": "running"}
+
+        errors = self.osctl.validate_run_record(record)
+
+        self.assertIn("missing task_id", errors)
+        self.assertIn("missing verification", errors)
+
 
 if __name__ == "__main__":
     unittest.main()
