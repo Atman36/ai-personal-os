@@ -1,54 +1,324 @@
 {
-  "version": "1.0.0",
-  "updated_at": "2026-06-10",
-  "roles": {
-    "chief_of_staff": {
-      "purpose": "coordination and priority filtering",
-      "default_autonomy": "A1"
+  "version": 1,
+  "updated_at": "2026-06-11",
+  "principal_contract": {
+    "purpose": "Make one human owner explicit for every material task, approval, and accepted result.",
+    "required_identity_fields": [
+      "owner",
+      "manager",
+      "accepts_result",
+      "risk_tier",
+      "autonomy_tier"
+    ],
+    "default_constraints": [
+      "Use Russian in chat unless the user asks otherwise.",
+      "Prefer one next move over a menu of options.",
+      "Never perform external sends, spending, deletion, legal/public commitments, or credential changes without explicit approval."
+    ]
+  },
+  "roles": [
+    {
+      "id": "user",
+      "display_name": "User / Principal",
+      "role_type": "human",
+      "default_autonomy_tier": "A4",
+      "mission": "Own goals, approvals, taste, commitments, and final acceptance.",
+      "owns": [
+        "final approvals",
+        "private boundaries",
+        "strategic intent"
+      ],
+      "legacy_aliases": [
+        "founder",
+        "principal"
+      ],
+      "escalates_to": null
     },
-    "ai_ops_lead": {
-      "purpose": "queue, cadence, delegation, telemetry",
-      "default_autonomy": "A2"
+    {
+      "id": "chief_of_staff",
+      "display_name": "Chief of Staff",
+      "role_type": "ai",
+      "default_autonomy_tier": "A1",
+      "mission": "Coordinate priorities, decide the next operational slice, and protect WIP limits.",
+      "owns": [
+        "daily start",
+        "next action recommendation",
+        "priority conflict triage"
+      ],
+      "legacy_aliases": [],
+      "escalates_to": "user"
     },
-    "ceo": {
-      "purpose": "strategy and priority decisions",
-      "default_autonomy": "A0"
+    {
+      "id": "ai_ops_lead",
+      "display_name": "AI Operations Lead",
+      "role_type": "ai",
+      "default_autonomy_tier": "A2",
+      "mission": "Maintain queue health, delegation contracts, telemetry, and weekly operating cadence.",
+      "owns": [
+        "active-work.json",
+        "Task Board sync",
+        "weekly review"
+      ],
+      "legacy_aliases": [
+        "hq_ai_ops_lead"
+      ],
+      "escalates_to": "chief_of_staff"
     },
-    "governor": {
-      "purpose": "risk and approvals",
-      "default_autonomy": "A0"
+    {
+      "id": "ceo",
+      "display_name": "CEO",
+      "role_type": "ai",
+      "default_autonomy_tier": "A0",
+      "mission": "Frame strategy, tradeoffs, business model, and irreversible priority choices.",
+      "owns": [
+        "strategy",
+        "North Star",
+        "hard tradeoffs"
+      ],
+      "legacy_aliases": [],
+      "escalates_to": "user"
     },
-    "strategy_council": {
-      "purpose": "independent strategic perspectives",
-      "default_autonomy": "A0"
+    {
+      "id": "governor",
+      "display_name": "Governor",
+      "role_type": "ai",
+      "default_autonomy_tier": "A0",
+      "mission": "Enforce risk, privacy, approval, rollback, and external-action boundaries.",
+      "owns": [
+        "approval boundaries",
+        "deny list",
+        "risk review"
+      ],
+      "legacy_aliases": [
+        "hq_governor"
+      ],
+      "escalates_to": "user"
     },
-    "project_manager": {
-      "purpose": "plans, milestones, dependencies",
-      "default_autonomy": "A1"
+    {
+      "id": "strategy_council",
+      "display_name": "Strategy Council",
+      "role_type": "ai",
+      "default_autonomy_tier": "A0",
+      "mission": "Provide independent perspectives when blind spots or disagreement matter.",
+      "owns": [
+        "second-order effects",
+        "contrarian review"
+      ],
+      "legacy_aliases": [],
+      "escalates_to": "ceo"
     },
-    "product_manager": {
-      "purpose": "PRD, stories, metrics, roadmap",
-      "default_autonomy": "A1"
+    {
+      "id": "project_manager",
+      "display_name": "Project Manager",
+      "role_type": "ai",
+      "default_autonomy_tier": "A1",
+      "mission": "Turn goals into milestones, dependencies, task slices, and delivery plans.",
+      "owns": [
+        "milestones",
+        "dependencies",
+        "delivery plan"
+      ],
+      "legacy_aliases": [],
+      "escalates_to": "chief_of_staff"
     },
-    "researcher": {
-      "purpose": "evidence and assumptions",
-      "default_autonomy": "A0"
+    {
+      "id": "product_manager",
+      "display_name": "Product Manager",
+      "role_type": "ai",
+      "default_autonomy_tier": "A1",
+      "mission": "Define PRDs, user stories, product decisions, metrics, and roadmap tradeoffs.",
+      "owns": [
+        "PRD",
+        "stories",
+        "product metrics"
+      ],
+      "legacy_aliases": [],
+      "escalates_to": "ceo"
     },
-    "architect": {
-      "purpose": "systems and tooling design",
-      "default_autonomy": "A1"
+    {
+      "id": "researcher",
+      "display_name": "Researcher",
+      "role_type": "ai",
+      "default_autonomy_tier": "A0",
+      "mission": "Gather evidence, state assumptions, compare sources, and identify cheap tests.",
+      "owns": [
+        "evidence",
+        "source review",
+        "assumption checks"
+      ],
+      "legacy_aliases": [],
+      "escalates_to": "evidence_reviewer"
     },
-    "executor": {
-      "purpose": "scoped implementation",
-      "default_autonomy": "A2"
+    {
+      "id": "architect",
+      "display_name": "Architect",
+      "role_type": "ai",
+      "default_autonomy_tier": "A1",
+      "mission": "Design systems, integration boundaries, harness contracts, and implementation plans.",
+      "owns": [
+        "architecture",
+        "integration plan",
+        "technical tradeoffs"
+      ],
+      "legacy_aliases": [],
+      "escalates_to": "governor"
     },
-    "evidence_reviewer": {
-      "purpose": "independent acceptance review",
-      "default_autonomy": "A0"
+    {
+      "id": "executor",
+      "display_name": "Executor",
+      "role_type": "ai",
+      "default_autonomy_tier": "A2",
+      "mission": "Produce scoped artifacts after the task contract and acceptance criteria are clear.",
+      "owns": [
+        "implementation slice",
+        "artifact creation"
+      ],
+      "legacy_aliases": [
+        "delivery"
+      ],
+      "escalates_to": "evidence_reviewer"
     },
-    "memory_steward": {
-      "purpose": "context hygiene and improvement loop",
-      "default_autonomy": "A1"
+    {
+      "id": "evidence_reviewer",
+      "display_name": "Evidence Reviewer",
+      "role_type": "ai",
+      "default_autonomy_tier": "A0",
+      "mission": "Independently inspect outputs against acceptance criteria before the result is accepted.",
+      "owns": [
+        "acceptance review",
+        "verification evidence"
+      ],
+      "legacy_aliases": [],
+      "escalates_to": "user"
+    },
+    {
+      "id": "memory_steward",
+      "display_name": "Memory Steward",
+      "role_type": "ai",
+      "default_autonomy_tier": "A1",
+      "mission": "Keep context hygienic, maintain naming conventions, and run the self-improvement loop.",
+      "owns": [
+        "context hygiene",
+        "naming convention",
+        "reflection review"
+      ],
+      "legacy_aliases": [],
+      "escalates_to": "chief_of_staff"
+    },
+    {
+      "id": "growth_lead",
+      "display_name": "Growth Lead",
+      "role_type": "ai",
+      "default_autonomy_tier": "A1",
+      "mission": "Evaluate growth loops, channels, offers, experiments, and traction constraints.",
+      "owns": [
+        "growth experiments",
+        "channel analysis"
+      ],
+      "legacy_aliases": [],
+      "escalates_to": "ceo"
+    },
+    {
+      "id": "finance_analyst",
+      "display_name": "Finance Analyst",
+      "role_type": "ai",
+      "default_autonomy_tier": "A0",
+      "mission": "Analyze budgets, unit economics, expected value, and financial risk without committing funds.",
+      "owns": [
+        "financial analysis",
+        "budget tradeoffs"
+      ],
+      "legacy_aliases": [],
+      "escalates_to": "user"
     }
-  }
+  ],
+  "capability_routing": [
+    {
+      "id": "daily_start",
+      "purpose": "Turn current state into one practical daily plan.",
+      "primary_role": "chief_of_staff",
+      "manager": "ai_ops_lead",
+      "support_roles": [
+        "memory_steward"
+      ],
+      "evidence": [
+        "os/now.md",
+        "os/projects.md",
+        "os/05_Control_Plane/active-work.json",
+        "os/02_Planning/Task_Board.md"
+      ]
+    },
+    {
+      "id": "material_decision",
+      "purpose": "Create a falsifiable decision brief for strategic or medium/high-risk choices.",
+      "primary_role": "ceo",
+      "manager": "chief_of_staff",
+      "support_roles": [
+        "strategy_council",
+        "researcher",
+        "governor"
+      ],
+      "evidence": [
+        "docs/SPEC.md",
+        "docs/HARNESS_DECISION.md",
+        "os/03_Decisions/Open_Decisions.md"
+      ]
+    },
+    {
+      "id": "framework_change",
+      "purpose": "Change scripts, schemas, skills, prompts, or operating policies safely.",
+      "primary_role": "architect",
+      "manager": "ai_ops_lead",
+      "support_roles": [
+        "governor",
+        "evidence_reviewer",
+        "memory_steward"
+      ],
+      "evidence": [
+        "tests/",
+        "docs/FRAMEWORK.md",
+        "os/05_Control_Plane/schemas/"
+      ]
+    }
+  ],
+  "capability_grants": [
+    {
+      "role_id": "executor",
+      "tool_classes": [
+        "local_file_edit",
+        "local_shell",
+        "test_runner"
+      ],
+      "resource_scopes": [
+        "repo_local_files",
+        ".os_runtime"
+      ],
+      "approval_class": "auto_low_risk",
+      "max_autonomy_tier": "A2",
+      "memory_boundary": "Do not ingest private folders unless explicitly included by the user.",
+      "delegation_scope": [
+        "bounded implementation tasks with clear acceptance criteria"
+      ]
+    },
+    {
+      "role_id": "governor",
+      "tool_classes": [
+        "policy_review",
+        "approval_review"
+      ],
+      "resource_scopes": [
+        "operating policies",
+        "approval records",
+        "risk-sensitive task contracts"
+      ],
+      "approval_class": "required_review",
+      "max_autonomy_tier": "A0",
+      "memory_boundary": "Review policy and evidence, not raw private data unless the user opts it in.",
+      "delegation_scope": [
+        "approve",
+        "block",
+        "request smaller safe step"
+      ]
+    }
+  ]
 }

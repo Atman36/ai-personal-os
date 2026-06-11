@@ -4,10 +4,12 @@
 No external dependencies. Commands:
   init           Seed personal state files from *.example, then sync.
   validate       Validate active-work task shape and schema contract.
+  validate-all   Validate active work plus committed control-plane registries.
   sync           Render os/02_Planning/Task_Board.md from active-work.json.
   status         Print compact queue status.
   add-task       Add a task to active-work.json.
   decision       Create a decision brief from a title and options.
+  note-name      Format or validate Personal OS note filenames.
   reflection-capture
                 Capture a private reusable lesson in .os_runtime.
   reflection-review
@@ -33,6 +35,8 @@ ACTIVE_SCHEMA = ROOT / "os/05_Control_Plane/schemas/active-work.schema.json"
 BOARD = ROOT / "os/02_Planning/Task_Board.md"
 DECISIONS = ROOT / "os/03_Decisions"
 RUNTIME = ROOT / ".os_runtime"
+CONTROL_PLANE = ROOT / "os/05_Control_Plane"
+SCHEMAS = CONTROL_PLANE / "schemas"
 
 # Personal state files are gitignored. They are seeded from committed *.example
 # templates on a fresh clone via `init`. (example, live) pairs:
@@ -50,6 +54,15 @@ REQUIRED = ["id", "title", "column", "project", "manager", "owner", "accepts_res
 COLUMNS = ["inbox", "this_week", "executing", "waiting", "done", "backlog"]
 RISKS = {"low", "medium", "high"}
 AUTONOMY = {"A0", "A1", "A2", "A3", "A4"}
+STANDARD_NOTE_TYPES = {
+    "meeting", "decision", "research", "draft", "rule", "prd", "guide",
+    "transcript", "skill", "overview", "task", "spec", "review", "plan",
+}
+NOTE_NAME_RE = re.compile(
+    r"^(?:\{(?P<project>[A-Z0-9][A-Z0-9_-]*)\} )?"
+    r"\{(?P<type>[a-z][a-z0-9_-]*)\} "
+    r"(?P<description>.+) – (?P<date>\d{4}-\d{2}-\d{2})\.md$"
+)
 
 
 def now() -> str:
@@ -65,6 +78,53 @@ def slugify(text: str) -> str:
     text = re.sub(r"[^a-z0-9а-яё]+", "-", text, flags=re.I)
     text = re.sub(r"-+", "-", text).strip("-")
     return text[:80] or "task"
+
+
+def clean_note_description(text: str) -> str:
+    """Return a short, filename-safe, lower-case note description."""
+    text = text.lower().strip()
+    text = re.sub(r"[^0-9a-zа-яё ]+", " ", text, flags=re.I)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text or "untitled"
+
+
+def format_note_name(note_type: str, description: str, note_date: str | None = None, project: str | None = None) -> str:
+    note_type = note_type.strip().strip("{}").lower()
+    if not note_type:
+        raise SystemExit("Missing note type")
+    note_date = note_date or now()
+    if not is_date_string(note_date):
+        raise SystemExit("Date must be YYYY-MM-DD")
+    clean_description = clean_note_description(description)
+    prefix = ""
+    if project:
+        project_code = re.sub(r"[^A-Z0-9_-]+", "", project.strip().upper())
+        if not project_code:
+            raise SystemExit("Project code must contain A-Z, 0-9, _ or -")
+        prefix = f"{{{project_code}}} "
+    return f"{prefix}{{{note_type}}} {clean_description} – {note_date}.md"
+
+
+def validate_note_name(filename: str) -> List[str]:
+    name = Path(filename).name
+    errors: List[str] = []
+    match = NOTE_NAME_RE.match(name)
+    if not match:
+        return ["filename must match `{type} description – YYYY-MM-DD.md` or `{PROJECT} {type} description – YYYY-MM-DD.md`"]
+    note_type = match.group("type")
+    description = match.group("description")
+    note_date = match.group("date")
+    if note_type not in STANDARD_NOTE_TYPES:
+        errors.append(f"unknown type {{{note_type}}}; add it deliberately if this is a new standard type")
+    if description != description.lower():
+        errors.append("description must be lowercase")
+    if re.search(r"[^0-9a-zа-яё ]", description, flags=re.I):
+        errors.append("description must not contain punctuation or special characters")
+    if len(description.split()) > 7:
+        errors.append("description should stay short; target 3-5 words")
+    if not is_date_string(note_date):
+        errors.append("date must be YYYY-MM-DD")
+    return errors
 
 
 def load_active_schema() -> Dict[str, Any]:
@@ -91,10 +151,14 @@ def json_type(value: Any, expected: str) -> bool:
         return isinstance(value, list)
     if expected == "string":
         return isinstance(value, str)
+    if expected == "number":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
     if expected == "integer":
         return isinstance(value, int) and not isinstance(value, bool)
     if expected == "boolean":
         return isinstance(value, bool)
+    if expected == "null":
+        return value is None
     return True
 
 
@@ -106,13 +170,32 @@ def is_date_string(value: str) -> bool:
     return True
 
 
+def is_datetime_string(value: str) -> bool:
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return True
+
+
 def validate_against_schema(value: Any, node: Dict[str, Any], root_schema: Dict[str, Any], path: str = "$") -> List[str]:
     errors: List[str] = []
     if "$ref" in node:
         return validate_against_schema(value, resolve_schema_ref(root_schema, str(node["$ref"])), root_schema, path)
 
+    for child in node.get("allOf", []) if isinstance(node.get("allOf"), list) else []:
+        if isinstance(child, dict):
+            errors.extend(validate_against_schema(value, child, root_schema, path))
+
+    if "const" in node and value != node["const"]:
+        errors.append(f"schema: {path} must be {node['const']!r}")
+
     expected_type = node.get("type")
-    if isinstance(expected_type, str) and not json_type(value, expected_type):
+    if isinstance(expected_type, list):
+        if not any((item == "null" and value is None) or (isinstance(item, str) and json_type(value, item)) for item in expected_type):
+            errors.append(f"schema: {path} must be one of {', '.join(map(str, expected_type))}")
+            return errors
+    elif isinstance(expected_type, str) and not json_type(value, expected_type):
         errors.append(f"schema: {path} must be {expected_type}")
         return errors
 
@@ -126,8 +209,18 @@ def validate_against_schema(value: Any, node: Dict[str, Any], root_schema: Dict[
             errors.append(f"schema: {path} must not be empty")
         if node.get("format") == "date" and not is_date_string(value):
             errors.append(f"schema: {path} must be YYYY-MM-DD")
+        if node.get("format") == "date-time" and not is_datetime_string(value):
+            errors.append(f"schema: {path} must be an ISO date-time")
+
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        minimum = node.get("minimum")
+        if isinstance(minimum, (int, float)) and value < minimum:
+            errors.append(f"schema: {path} must be >= {minimum}")
 
     if isinstance(value, dict):
+        min_properties = node.get("minProperties")
+        if isinstance(min_properties, int) and len(value) < min_properties:
+            errors.append(f"schema: {path} must contain at least {min_properties} properties")
         for field in node.get("required", []):
             if field not in value:
                 errors.append(f"schema: {path} missing {field}")
@@ -136,12 +229,50 @@ def validate_against_schema(value: Any, node: Dict[str, Any], root_schema: Dict[
             for field, child in properties.items():
                 if field in value and isinstance(child, dict):
                     errors.extend(validate_against_schema(value[field], child, root_schema, f"{path}.{field}" if path != "$" else field))
+        additional = node.get("additionalProperties")
+        if isinstance(additional, dict) and isinstance(properties, dict):
+            for field, child_value in value.items():
+                if field not in properties:
+                    errors.extend(validate_against_schema(child_value, additional, root_schema, f"{path}.{field}" if path != "$" else field))
+        elif additional is False and isinstance(properties, dict):
+            for field in value:
+                if field not in properties:
+                    errors.append(f"schema: {path} unexpected {field}")
 
     if isinstance(value, list) and isinstance(node.get("items"), dict):
+        min_items = node.get("minItems")
+        if isinstance(min_items, int) and len(value) < min_items:
+            errors.append(f"schema: {path} must contain at least {min_items} item(s)")
         for index, item in enumerate(value):
             errors.extend(validate_against_schema(item, node["items"], root_schema, f"{path}[{index}]"))
 
     return errors
+
+
+def validate_json_file(path: Path, schema_path: Path) -> List[str]:
+    if not path.exists():
+        return [f"missing file: {path.relative_to(ROOT)}"]
+    if not schema_path.exists():
+        return [f"missing schema: {schema_path.relative_to(ROOT)}"]
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return [f"{path.relative_to(ROOT)} invalid JSON: {exc}"]
+    try:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return [f"{schema_path.relative_to(ROOT)} invalid JSON: {exc}"]
+    return [f"{path.relative_to(ROOT)}: {error}" for error in validate_against_schema(value, schema, schema)]
+
+
+def control_plane_schema_targets() -> List[tuple[Path, Path]]:
+    return [
+        (ACTIVE, ACTIVE_SCHEMA),
+        (CONTROL_PLANE / "agent-registry.json", SCHEMAS / "agent-registry.schema.json"),
+        (CONTROL_PLANE / "metrics-registry.json", SCHEMAS / "metrics-registry.schema.json"),
+        (CONTROL_PLANE / "operating-policies.json", SCHEMAS / "operating-policies.schema.json"),
+        (CONTROL_PLANE / "workflow-registry.json", SCHEMAS / "workflow-registry.schema.json"),
+    ]
 
 
 def load() -> Dict[str, Any]:
@@ -464,6 +595,19 @@ def cmd_validate(_: argparse.Namespace) -> None:
     print("OK: active-work.json is valid")
 
 
+def cmd_validate_all(_: argparse.Namespace) -> None:
+    errors: List[str] = []
+    errors.extend(validate_data(load()))
+    for path, schema_path in control_plane_schema_targets()[1:]:
+        errors.extend(validate_json_file(path, schema_path))
+    if errors:
+        print("INVALID")
+        for error in errors:
+            print(f"- {error}")
+        raise SystemExit(1)
+    print("OK: control plane is valid")
+
+
 def cmd_sync(_: argparse.Namespace) -> None:
     data = load()
     errors = validate_data(data)
@@ -529,8 +673,7 @@ def cmd_add(args: argparse.Namespace) -> None:
 
 def cmd_decision(args: argparse.Namespace) -> None:
     DECISIONS.mkdir(parents=True, exist_ok=True)
-    slug = slugify(args.title)
-    path = DECISIONS / f"{now()}-{slug}.md"
+    path = DECISIONS / format_note_name("decision", args.title, now())
     options = args.option or []
     table = "\n".join(f"| {o} |  |  |  |  |  |" for o in options) or "| Option A |  |  |  |  |  |"
     content = f"""# Decision Brief: {args.title}
@@ -575,11 +718,25 @@ TBD
     print(f"Created {path.relative_to(ROOT)}")
 
 
+def cmd_note_name(args: argparse.Namespace) -> None:
+    if args.check:
+        errors = validate_note_name(args.check)
+        if errors:
+            print("INVALID")
+            for error in errors:
+                print(f"- {error}")
+            raise SystemExit(1)
+        print("OK: filename follows Personal OS convention")
+        return
+    print(format_note_name(args.type, args.description, args.date, args.project))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(required=True)
     sub.add_parser("init").set_defaults(func=cmd_init)
     sub.add_parser("validate").set_defaults(func=cmd_validate)
+    sub.add_parser("validate-all").set_defaults(func=cmd_validate_all)
     sub.add_parser("sync").set_defaults(func=cmd_sync)
     sub.add_parser("status").set_defaults(func=cmd_status)
     add = sub.add_parser("add-task")
@@ -607,6 +764,13 @@ def main() -> None:
     dec.add_argument("--type", default="strategic")
     dec.add_argument("--risk", choices=sorted(RISKS), default="medium")
     dec.set_defaults(func=cmd_decision)
+    note = sub.add_parser("note-name")
+    note.add_argument("--type", default="draft", choices=sorted(STANDARD_NOTE_TYPES))
+    note.add_argument("--description", default="untitled")
+    note.add_argument("--date")
+    note.add_argument("--project")
+    note.add_argument("--check", help="Validate an existing filename instead of formatting a new one.")
+    note.set_defaults(func=cmd_note_name)
     capture = sub.add_parser("reflection-capture")
     capture.add_argument("--agent", required=True)
     capture.add_argument("--task", required=True)

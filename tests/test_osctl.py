@@ -121,6 +121,41 @@ class OsctlTests(unittest.TestCase):
         self.assertNotIn("autonomy", task)
         self.assertNotIn("next", task)
 
+    def test_note_name_formatter_uses_personal_os_convention(self) -> None:
+        name = self.osctl.format_note_name(
+            "Research",
+            "MCP Server Comparison!",
+            "2026-03-18",
+            project="acme",
+        )
+
+        self.assertEqual(name, "{ACME} {research} mcp server comparison – 2026-03-18.md")
+        self.assertEqual(self.osctl.validate_note_name(name), [])
+
+    def test_note_name_validator_rejects_ambiguous_names(self) -> None:
+        errors = self.osctl.validate_note_name("Meeting Notes 03-24.md")
+
+        self.assertTrue(errors)
+        self.assertIn("filename must match", errors[0])
+
+    def test_decision_uses_note_naming_convention(self) -> None:
+        data = self.canonical_data()
+        self.osctl.ACTIVE.write_text(json.dumps(data), encoding="utf-8")
+
+        self.osctl.cmd_decision(
+            argparse.Namespace(
+                title="Choose first project",
+                question="What should the OS manage first?",
+                context="Bootstrap",
+                option=["AI-MAX growth", "Personal productivity"],
+                type="strategic",
+                risk="medium",
+            )
+        )
+
+        files = list(self.osctl.DECISIONS.glob("{decision} choose first project – *.md"))
+        self.assertEqual(len(files), 1)
+
     def test_reflection_review_marks_single_observation_not_ready(self) -> None:
         self.osctl.cmd_reflection_capture(
             argparse.Namespace(

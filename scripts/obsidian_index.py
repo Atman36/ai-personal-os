@@ -46,6 +46,22 @@ GENERIC_NAMES = {
 CURLY_RE = re.compile(r"\{([^}]+)\}")
 DATE_RE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
 WIKILINK_RE = re.compile(r"\[\[([^\[\]]+)\]\]")
+NOTE_NAME_RE = re.compile(
+    r"^(?:\{(?P<project>[A-Z0-9][A-Z0-9_-]*)\} )?"
+    r"\{(?P<type>[a-z][a-z0-9_-]*)\} "
+    r"(?P<description>.+) – (?P<date>\d{4}-\d{2}-\d{2})$"
+)
+
+
+def filename_convention_errors(stem: str) -> List[str]:
+    """Check the Personal OS note filename shape without requiring frontmatter."""
+    match = NOTE_NAME_RE.match(stem)
+    if not match:
+        return ["invalid_filename_format"]
+    description = match.group("description")
+    if description != description.lower() or re.search(r"[^0-9a-zа-яё ]", description, flags=re.I):
+        return ["invalid_filename_format"]
+    return []
 
 
 def parse_frontmatter(text: str) -> Tuple[Optional[Dict[str, Any]], str]:
@@ -165,6 +181,7 @@ def parse_note(path: Path, rel_path: str, vault_name: str) -> Dict[str, Any]:
         issues.append("no_date")
     if normalized_title(clean_title(stem)) in GENERIC_NAMES:
         issues.append("generic_filename")
+    issues.extend(filename_convention_errors(stem))
 
     return {
         "path": rel_path,
@@ -270,6 +287,7 @@ def render_report(index: Dict[str, Any]) -> str:
         ("no_type", "Notes Without Type"),
         ("no_date", "Notes Without Date"),
         ("generic_filename", "Generic Filenames"),
+        ("invalid_filename_format", "Invalid Personal OS Filenames"),
     ]
     problems: Dict[str, List[str]] = {}
     for issue, title in problem_sections:
@@ -307,6 +325,10 @@ def render_report(index: Dict[str, Any]) -> str:
         actions.append(f"Add a date (frontmatter or filename) to {len(problems['no_date'])} note(s).")
     if problems["generic_filename"]:
         actions.append(f"Rename {len(problems['generic_filename'])} note(s) with generic filenames.")
+    if problems["invalid_filename_format"]:
+        actions.append(
+            f"Rename {len(problems['invalid_filename_format'])} note(s) to `{{type}} description – YYYY-MM-DD.md`."
+        )
     if index["duplicates"]:
         actions.append(f"Review and merge {len(index['duplicates'])} possible duplicate group(s).")
     if not actions:

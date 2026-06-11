@@ -1,38 +1,307 @@
 {
-  "version": "1.0.0",
-  "updated_at": "2026-06-10",
-  "autonomy_tiers": {
-    "A0": "advisory_only",
-    "A1": "draft_and_prepare",
-    "A2": "internal_execution",
-    "A3": "external_action_with_review",
-    "A4": "human_only"
-  },
+  "version": 1,
+  "updated_at": "2026-06-11",
+  "stage": "v0-local-control-plane",
+  "autonomy_tiers": [
+    {
+      "id": "A0",
+      "description": "advisory only: analysis, options, critique, and recommendations"
+    },
+    {
+      "id": "A1",
+      "description": "draft and prepare: plans, briefs, specs, task contracts, and proposed edits"
+    },
+    {
+      "id": "A2",
+      "description": "internal execution: local file edits, generated docs, tests, and repo-local scripts"
+    },
+    {
+      "id": "A3",
+      "description": "external action with explicit review: draft or stage side effects, then pause for approval"
+    },
+    {
+      "id": "A4",
+      "description": "human only: money, legal, public commitments, credentials, destructive actions, and sensitive data decisions"
+    }
+  ],
   "risk_tiers": [
-    "low",
-    "medium",
-    "high"
+    {
+      "id": "low",
+      "description": "reversible internal work with low privacy and reputation impact",
+      "default_approval": "manager_or_user_acceptance"
+    },
+    {
+      "id": "medium",
+      "description": "work that may affect priorities, reputation, stakeholders, customer/user perception, or significant time allocation",
+      "default_approval": "governor_review_if_external_or_ambiguous"
+    },
+    {
+      "id": "high",
+      "description": "legal, financial, public, destructive, privacy-sensitive, irreversible, or security-relevant work",
+      "default_approval": "governor_review_and_explicit_user_approval"
+    }
   ],
-  "wip_limits": {
-    "active_projects": 3,
-    "active_tasks": 5
+  "approvals": {
+    "human_only_actions": [
+      "spend_money",
+      "legal_commitment",
+      "sign_contract",
+      "publish_publicly",
+      "send_external_message",
+      "delete_data",
+      "credential_change",
+      "security_boundary_change",
+      "sensitive_personal_or_customer_data_use"
+    ],
+    "governor_review_required_for": [
+      "risk_tier_high",
+      "autonomy_A3_or_A4",
+      "external_side_effect",
+      "destructive_action",
+      "privacy_sensitive_context",
+      "public_claim",
+      "money_or_legal",
+      "autonomy_expansion"
+    ],
+    "default_spend_without_budget_eur": 0,
+    "max_external_send_without_review": 0
   },
-  "requires_user_approval": [
-    "external_send",
-    "spend_money",
-    "delete_data",
-    "publish_publicly",
-    "legal_commitment",
-    "credential_change",
-    "customer_data_use"
-  ],
-  "governor_required_for": [
-    "high_risk",
-    "A3",
-    "A4",
-    "privacy_sensitive",
-    "destructive",
-    "public_claim",
-    "money_or_legal"
+  "weekly_metric_review": {
+    "cadence": "weekly",
+    "owner": "ai_ops_lead",
+    "support": [
+      "chief_of_staff",
+      "memory_steward"
+    ],
+    "approver": "user",
+    "required_metrics": [
+      "decision_latency",
+      "task_throughput",
+      "wip_overload",
+      "stale_tasks",
+      "improvement_candidates"
+    ]
+  },
+  "eval_policy": {
+    "minimum_checks_for_repeated_work": [
+      "acceptance criteria stated before execution",
+      "changed files or artifact paths reported",
+      "verification command or manual review evidence recorded",
+      "evidence reviewer used when output will guide future action"
+    ],
+    "control_plane_change_requires": [
+      "schema validation",
+      "task board sync if active-work changed",
+      "brief explanation of behavior change",
+      "rollback path or smallest reversible slice"
+    ]
+  },
+  "review_pipeline": {
+    "purpose": "Keep high-leverage work from shipping without policy and evidence checks.",
+    "owner": "ai_ops_lead",
+    "default_order": [
+      "task_contract",
+      "execution",
+      "evidence_review",
+      "governor_review_if_needed",
+      "user_acceptance"
+    ],
+    "gate_selection": [
+      {
+        "gate": "evidence_reviewer",
+        "applies_when": "artifact changes durable docs, code, schemas, policies, or future operating behavior",
+        "minimum_evidence": [
+          "files changed",
+          "acceptance criteria",
+          "verification result"
+        ]
+      },
+      {
+        "gate": "governor",
+        "applies_when": "risk tier high, A3/A4, external side effects, sensitive data, or autonomy expansion",
+        "minimum_evidence": [
+          "requested action",
+          "risk tier",
+          "approval owner",
+          "rollback path"
+        ]
+      }
+    ],
+    "learning_loop": {
+      "owner": "memory_steward",
+      "event_type": "reflection.captured",
+      "runtime_path": ".os_runtime/reflections/sessions/",
+      "tracked_truth_rule": "Promote only repeated friction or explicit user requests into durable files.",
+      "capture_when": [
+        "same failure recurs",
+        "manual workaround was needed",
+        "agent used wrong file/path/tool",
+        "acceptance criteria were unclear"
+      ]
+    }
+  },
+  "runtime_governance": {
+    "policy_surface": "os/05_Control_Plane/operating-policies.json",
+    "hook_events": [
+      "approval.requested",
+      "approval.decided",
+      "run.completed",
+      "reflection.captured"
+    ]
+  },
+  "tool_plane_policy": {
+    "purpose": "Keep local Codex/Claude work useful while preventing uncontrolled side effects.",
+    "owner": "governor",
+    "default_rule": "local read/write is allowed only inside repo and .os_runtime; external writes require approval",
+    "required_request_fields": [
+      "tool_class",
+      "resource_scope",
+      "risk_tier",
+      "autonomy_tier",
+      "approval_owner",
+      "rollback_or_stop_plan"
+    ],
+    "sensitive_tool_classes": [
+      "email_send",
+      "calendar_write",
+      "github_write",
+      "cloud_write",
+      "payment",
+      "credential_change",
+      "delete_or_destructive"
+    ],
+    "rules": [
+      "Read-only research may run in Codex when no secrets/private data are needed.",
+      "Draft external actions locally; send only after explicit approval.",
+      "Use harness mode when work needs checkpoints, replay, persistent workspace, parallel agents, or audited side effects."
+    ]
+  },
+  "run_receipts_and_provenance": {
+    "owner": "ai_ops_lead",
+    "runtime_paths": {
+      "handoffs": ".os_runtime/handoffs/",
+      "telemetry": ".os_runtime/telemetry/",
+      "approvals": ".os_runtime/approvals/",
+      "artifacts": ".os_runtime/artifacts/"
+    },
+    "receipt_required_for": [
+      "harness_run",
+      "external_side_effect",
+      "policy_change",
+      "schema_change",
+      "connector_change"
+    ],
+    "minimum_receipt_fields": [
+      "task_id",
+      "run_id",
+      "actor",
+      "started_at",
+      "finished_at",
+      "changed_files",
+      "verification",
+      "approval_ids"
+    ],
+    "provenance_edges": [
+      "task -> run",
+      "run -> artifact",
+      "run -> approval",
+      "reflection -> improvement",
+      "decision -> task"
+    ],
+    "tracked_truth_rule": "Raw traces and private notes stay in .os_runtime; only accepted summaries move into durable Markdown."
+  },
+  "agent_release_discipline": {
+    "owner": "memory_steward",
+    "applies_when": [
+      "new skill added",
+      "agent role prompt changed",
+      "AGENTS.md or CLAUDE.md changed",
+      "approval policy changed",
+      "schema changed"
+    ],
+    "required_release_evidence": [
+      "why change is needed",
+      "source files changed",
+      "validation result",
+      "rollback path"
+    ],
+    "rollback_rule": "Prefer one small reversible surface; revert the file if validation or first real use regresses."
+  },
+  "subagent_context_protocol": {
+    "owner": "chief_of_staff",
+    "applies_to_roles": [
+      "chief_of_staff",
+      "ai_ops_lead",
+      "ceo",
+      "governor",
+      "strategy_council",
+      "project_manager",
+      "product_manager",
+      "researcher",
+      "architect",
+      "executor",
+      "evidence_reviewer",
+      "memory_steward",
+      "growth_lead",
+      "finance_analyst"
+    ],
+    "inherit_parent_history": false,
+    "require_explicit_context_packet": true,
+    "require_original_source_material": true,
+    "context_packet_sections": [
+      "objective",
+      "decision needed",
+      "files to read",
+      "constraints",
+      "acceptance criteria",
+      "risk/autonomy",
+      "return format"
+    ],
+    "required_packet_fields": [
+      "task_id",
+      "owner",
+      "manager",
+      "accepts_result",
+      "primary_update_file",
+      "done_when"
+    ],
+    "return_handoff_requirements": [
+      "answer or artifact path",
+      "assumptions",
+      "evidence",
+      "changed files",
+      "remaining blockers"
+    ],
+    "child_session_defaults": {
+      "scope": "child_isolated",
+      "blocked_tool_classes": [
+        "external_send",
+        "spend_money",
+        "credential_change",
+        "delete_data"
+      ]
+    }
+  },
+  "metric_thresholds": [
+    {
+      "metric_id": "wip_overload",
+      "comparison": "<=",
+      "target": 5,
+      "owner": "chief_of_staff",
+      "escalate_to": [
+        "user"
+      ],
+      "action": "Stop accepting new work until WIP is reduced."
+    },
+    {
+      "metric_id": "decision_latency",
+      "comparison": "<=",
+      "target": 7,
+      "owner": "chief_of_staff",
+      "escalate_to": [
+        "ceo"
+      ],
+      "action": "Write or refresh a decision brief."
+    }
   ]
 }

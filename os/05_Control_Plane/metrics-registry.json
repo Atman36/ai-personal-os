@@ -1,26 +1,112 @@
 {
-  "version": "1.0.0",
-  "updated_at": "2026-06-10",
+  "version": 1,
+  "updated_at": "2026-06-11",
   "primary_metrics": [
     {
       "id": "decision_latency",
-      "name": "Time from open decision to next test"
+      "definition": "Days from opening a material decision to choosing a next test or explicit defer/stop call.",
+      "source": [
+        "os/03_Decisions/Open_Decisions.md",
+        "os/03_Decisions/Decisions.md",
+        "os/05_Control_Plane/active-work.json"
+      ],
+      "unit": "days",
+      "review_cadence": "weekly",
+      "review_owner": "chief_of_staff",
+      "threshold": {
+        "comparison": "<=",
+        "value": 7
+      },
+      "action_if_breached": "Create or refresh a decision brief and pick the cheapest evidence step."
     },
     {
       "id": "task_throughput",
-      "name": "Done tasks per week"
+      "definition": "Tasks moved to done with completed_at during the current weekly review window.",
+      "source": [
+        "os/05_Control_Plane/active-work.json",
+        "os/02_Planning/Task_Board.md"
+      ],
+      "unit": "tasks/week",
+      "review_cadence": "weekly",
+      "review_owner": "ai_ops_lead",
+      "threshold": {
+        "comparison": ">=",
+        "value": 1
+      },
+      "action_if_breached": "Reduce WIP and choose one smaller executable slice."
     },
     {
       "id": "wip_overload",
-      "name": "Active task count vs WIP limit"
+      "definition": "Count of tasks in this_week or executing compared with the active task WIP limit.",
+      "source": [
+        "os/05_Control_Plane/active-work.json",
+        "os/05_Control_Plane/operating-policies.json"
+      ],
+      "unit": "active_tasks",
+      "review_cadence": "daily",
+      "review_owner": "chief_of_staff",
+      "threshold": {
+        "comparison": "<=",
+        "value": 5
+      },
+      "action_if_breached": "Move tasks to waiting/backlog before accepting new work."
     },
     {
       "id": "stale_tasks",
-      "name": "Tasks not updated in 7 days"
+      "definition": "Open tasks with no updated_at movement for seven or more days.",
+      "source": [
+        "os/05_Control_Plane/active-work.json"
+      ],
+      "unit": "tasks",
+      "review_cadence": "weekly",
+      "review_owner": "ai_ops_lead",
+      "threshold": {
+        "comparison": "=",
+        "value": 0
+      },
+      "action_if_breached": "Continue, defer, split, or kill each stale task explicitly."
     },
     {
       "id": "improvement_candidates",
-      "name": "Useful OS improvements found per week"
+      "definition": "Repeated private reflections ready to evaluate for a durable OS improvement.",
+      "source": [
+        ".os_runtime/reflections/sessions/",
+        ".os_runtime/improvements/LATEST.md"
+      ],
+      "unit": "candidates/week",
+      "review_cadence": "weekly",
+      "review_owner": "memory_steward",
+      "threshold": {
+        "comparison": ">=",
+        "value": 0
+      },
+      "action_if_breached": "Promote only repeated evidence-backed improvements; keep one-off lessons private."
+    }
+  ],
+  "secondary_metrics": [
+    {
+      "id": "approval_rate",
+      "definition": "Share of AI-proposed actions accepted by the user or accepting role.",
+      "source": [
+        ".os_runtime/telemetry/",
+        ".os_runtime/handoffs/"
+      ],
+      "unit": "percent",
+      "review_cadence": "monthly",
+      "review_owner": "ai_ops_lead",
+      "action_if_breached": "Tighten task contracts and add evidence-review gates."
+    },
+    {
+      "id": "context_hygiene_debt",
+      "definition": "Indexed notes missing type/date/frontmatter or likely duplicates.",
+      "source": [
+        ".os_runtime/obsidian/report.md",
+        "scripts/obsidian_index.py"
+      ],
+      "unit": "notes",
+      "review_cadence": "monthly",
+      "review_owner": "memory_steward",
+      "action_if_breached": "Rename or annotate the highest-value notes first."
     }
   ]
 }

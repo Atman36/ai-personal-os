@@ -1,40 +1,202 @@
 {
-  "version": "1.0.0",
-  "updated_at": "2026-06-10",
+  "version": 1,
+  "updated_at": "2026-06-11",
   "board_columns": [
-    "inbox",
-    "this_week",
-    "executing",
-    "waiting",
-    "done",
-    "backlog"
+    {
+      "id": "inbox",
+      "title": "Inbox"
+    },
+    {
+      "id": "this_week",
+      "title": "This Week"
+    },
+    {
+      "id": "executing",
+      "title": "Executing"
+    },
+    {
+      "id": "waiting",
+      "title": "Waiting"
+    },
+    {
+      "id": "done",
+      "title": "Done"
+    },
+    {
+      "id": "backlog",
+      "title": "Backlog"
+    }
   ],
-  "workflows": {
-    "daily_ops": {
+  "telemetry": {
+    "event_types": [
+      "run.started",
+      "run.completed",
+      "task.created",
+      "task.updated",
+      "task.completed",
+      "decision.created",
+      "approval.requested",
+      "approval.decided",
+      "handoff.written",
+      "reflection.captured",
+      "improvement.proposed"
+    ],
+    "statuses": [
+      "planned",
+      "running",
+      "waiting_approval",
+      "completed",
+      "blocked",
+      "failed",
+      "cancelled"
+    ],
+    "event_sets": {
+      "task_lifecycle": [
+        "task.created",
+        "task.updated",
+        "task.completed"
+      ],
+      "decision_lifecycle": [
+        "decision.created",
+        "approval.requested",
+        "approval.decided"
+      ],
+      "runtime_lifecycle": [
+        "run.started",
+        "run.completed",
+        "handoff.written"
+      ]
+    },
+    "status_sets": {
+      "open": [
+        "planned",
+        "running",
+        "waiting_approval",
+        "blocked"
+      ],
+      "closed": [
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    }
+  },
+  "workflows": [
+    {
+      "id": "daily_ops",
+      "purpose": "Turn current state into a daily Top-3 and update queue mirrors.",
       "states": [
         "this_week",
         "executing",
         "done"
       ],
-      "review": "same day"
+      "required_task_fields": [
+        "id",
+        "title",
+        "manager",
+        "owner",
+        "accepts_result",
+        "next_step",
+        "done_when",
+        "primary_update_file"
+      ],
+      "required_telemetry_events": [
+        "run.started",
+        "run.completed"
+      ],
+      "acceptance_evidence": [
+        "Top-3 actions stated",
+        "blocked/stale/WIP issues checked",
+        "Task Board synced if active-work changed"
+      ],
+      "transition_owners": {
+        "start": "chief_of_staff",
+        "sync": "ai_ops_lead",
+        "accept": "user"
+      }
     },
-    "weekly_review": {
+    {
+      "id": "weekly_review",
+      "purpose": "Close, continue, defer, or kill work and choose next-week outcomes.",
       "states": [
         "this_week",
         "executing",
-        "done"
+        "waiting",
+        "done",
+        "backlog"
       ],
-      "review": "weekly"
+      "required_task_fields": [
+        "id",
+        "title",
+        "column",
+        "owner",
+        "manager",
+        "done_when",
+        "updated_at"
+      ],
+      "required_telemetry_events": [
+        "run.started",
+        "task.updated",
+        "run.completed"
+      ],
+      "acceptance_evidence": [
+        "stale tasks reviewed",
+        "WIP limit checked",
+        "next-week outcomes chosen"
+      ],
+      "transition_owners": {
+        "review": "ai_ops_lead",
+        "prioritize": "chief_of_staff",
+        "accept": "user"
+      },
+      "review_gates": [
+        {
+          "id": "governor_autonomy_expansion",
+          "owner": "governor",
+          "telemetry_event": "approval.requested",
+          "when": "any workflow change expands autonomy or external action scope",
+          "evidence": [
+            "risk tier",
+            "approval owner",
+            "rollback path"
+          ]
+        }
+      ]
     },
-    "decision": {
+    {
+      "id": "decision",
+      "purpose": "Create a falsifiable decision brief and smallest next step.",
       "states": [
         "inbox",
         "this_week",
         "done"
       ],
-      "review": "decision review date"
+      "required_task_fields": [
+        "id",
+        "title",
+        "owner",
+        "manager",
+        "risk_tier",
+        "autonomy_tier",
+        "done_when"
+      ],
+      "required_telemetry_events": [
+        "decision.created"
+      ],
+      "acceptance_evidence": [
+        "options compared",
+        "recommendation falsifiable",
+        "review date or cheapest evidence step recorded"
+      ],
+      "transition_owners": {
+        "frame": "ceo",
+        "risk_review": "governor",
+        "accept": "user"
+      }
     },
-    "project_delivery": {
+    {
+      "id": "project_delivery",
+      "purpose": "Deliver a bounded project slice with evidence and explicit acceptance.",
       "states": [
         "backlog",
         "this_week",
@@ -42,16 +204,119 @@
         "waiting",
         "done"
       ],
-      "review": "accepts_result"
+      "required_task_fields": [
+        "id",
+        "title",
+        "project",
+        "owner",
+        "manager",
+        "accepts_result",
+        "next_step",
+        "done_when",
+        "primary_update_file"
+      ],
+      "required_telemetry_events": [
+        "run.started",
+        "handoff.written",
+        "task.completed"
+      ],
+      "acceptance_evidence": [
+        "changed files or artifact paths",
+        "verification commands",
+        "evidence reviewer result"
+      ],
+      "transition_owners": {
+        "scope": "project_manager",
+        "execute": "executor",
+        "review": "evidence_reviewer",
+        "accept": "user"
+      }
     },
-    "self_improvement": {
+    {
+      "id": "self_improvement",
+      "purpose": "Promote repeated private friction into scripts, schemas, skills, prompts, or policies.",
       "states": [
         "inbox",
         "backlog",
         "this_week",
         "done"
       ],
-      "review": "governor if autonomy expands"
+      "required_task_fields": [
+        "id",
+        "title",
+        "owner",
+        "manager",
+        "done_when",
+        "primary_update_file"
+      ],
+      "required_telemetry_events": [
+        "reflection.captured",
+        "improvement.proposed"
+      ],
+      "acceptance_evidence": [
+        "at least two observations or explicit user request",
+        "smallest durable surface changed",
+        "tests or validation run"
+      ],
+      "transition_owners": {
+        "synthesize": "memory_steward",
+        "risk_review": "governor",
+        "apply": "executor",
+        "accept": "user"
+      },
+      "review_gates": [
+        {
+          "id": "prompt_or_policy_change",
+          "owner": "governor",
+          "telemetry_event": "approval.requested",
+          "when": "change modifies AGENTS.md, CLAUDE.md, schemas, skills, or autonomy policy",
+          "evidence": [
+            "source reflection ids",
+            "expected behavior change",
+            "rollback path"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "harness_run",
+      "purpose": "Run long-lived, tool-heavy, or resumable work through an external harness such as Hermes.",
+      "states": [
+        "this_week",
+        "executing",
+        "waiting",
+        "done"
+      ],
+      "required_task_fields": [
+        "id",
+        "title",
+        "workflow",
+        "owner",
+        "manager",
+        "accepts_result",
+        "risk_tier",
+        "autonomy_tier",
+        "done_when",
+        "primary_update_file"
+      ],
+      "required_telemetry_events": [
+        "run.started",
+        "approval.requested",
+        "handoff.written",
+        "run.completed"
+      ],
+      "acceptance_evidence": [
+        "environment contract",
+        "checkpoint or replay path",
+        "artifact bundle",
+        "approval records for side effects"
+      ],
+      "transition_owners": {
+        "prepare": "architect",
+        "execute": "executor",
+        "approve": "governor",
+        "accept": "evidence_reviewer"
+      }
     }
-  }
+  ]
 }
