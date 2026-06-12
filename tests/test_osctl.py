@@ -49,6 +49,12 @@ class OsctlTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
+        repo_control_plane = Path(__file__).resolve().parents[1] / "os/05_Control_Plane"
+        for registry in ("agent-registry.json", "workflow-registry.json"):
+            (self.root / "os/05_Control_Plane" / registry).write_text(
+                (repo_control_plane / registry).read_text(encoding="utf-8"), encoding="utf-8"
+            )
+        (self.root / "os/04_Projects").mkdir(parents=True)
 
     def tearDown(self) -> None:
         self.tmp.cleanup()
@@ -364,6 +370,127 @@ class OsctlTests(unittest.TestCase):
         records = self.osctl.list_approvals(status="pending")
 
         self.assertEqual([record["id"] for _, record in records], ["approval-pending"])
+
+    def test_context_pack_builds_sufficient_packet(self) -> None:
+        self.osctl.ACTIVE.write_text(json.dumps(self.canonical_data()), encoding="utf-8")
+
+        self.osctl.cmd_context_pack(argparse.Namespace(task="task-1", role="executor"))
+
+        packet_path = self.osctl.RUNTIME / "context-packs/task-1/executor.md"
+        self.assertTrue(packet_path.exists())
+        packet = packet_path.read_text(encoding="utf-8")
+        self.assertIn("# Context Packet: task-1 -> executor", packet)
+        self.assertIn("## Task Contract", packet)
+        self.assertIn("## Files To Read (pointers only)", packet)
+        self.assertIn("## Files Not To Read", packet)
+        self.assertIn("## Constraints", packet)
+        self.assertIn("## Acceptance Criteria", packet)
+        self.assertIn("## Return Format", packet)
+        self.assertIn("Done when: Done condition.", packet)
+        self.assertIn("`os/projects.md`", packet)
+        self.assertIn("Private vault folders", packet)
+
+    def test_context_pack_rejects_missing_task(self) -> None:
+        self.osctl.ACTIVE.write_text(json.dumps(self.canonical_data()), encoding="utf-8")
+
+        with self.assertRaises(SystemExit) as ctx:
+            self.osctl.cmd_context_pack(argparse.Namespace(task="missing-task", role="executor"))
+        self.assertIn("Task not found", str(ctx.exception))
+
+    def test_context_pack_rejects_unknown_role(self) -> None:
+        self.osctl.ACTIVE.write_text(json.dumps(self.canonical_data()), encoding="utf-8")
+
+        with self.assertRaises(SystemExit) as ctx:
+            self.osctl.cmd_context_pack(argparse.Namespace(task="task-1", role="wizard"))
+        self.assertIn("Unknown role", str(ctx.exception))
+
+    def project_args(self, **overrides) -> argparse.Namespace:
+        defaults = dict(
+            name="AI Max growth",
+            project="aimax",
+            status="active",
+            owner="user",
+            review_cadence="weekly",
+            success_metric=["one paying customer"],
+            risk_tier="low",
+            autonomy_tier="A1",
+            objective="Grow the demo product.",
+            date="2026-06-12",
+        )
+        defaults.update(overrides)
+        return argparse.Namespace(**defaults)
+
+    def test_project_new_follows_naming_convention(self) -> None:
+        self.osctl.cmd_project_new(self.project_args())
+
+        path = self.root / "os/04_Projects/{AIMAX} {overview} ai max growth – 2026-06-12.md"
+        self.assertTrue(path.exists())
+        self.assertEqual(self.osctl.validate_note_name(path.name), [])
+        content = path.read_text(encoding="utf-8")
+        self.assertIn("project: AIMAX", content)
+        self.assertIn("status: active", content)
+        self.assertIn("- one paying customer", content)
+
+    def test_project_index_reports_missing_fields(self) -> None:
+        self.osctl.cmd_project_new(self.project_args())
+        broken = self.root / "os/04_Projects/{draft} broken page – 2026-06-12.md"
+        broken.write_text("---\ntype: overview\nstatus: active\n---\n\n# Broken\n", encoding="utf-8")
+        (self.root / "os/04_Projects/Project_Template.md").write_text("# template\n", encoding="utf-8")
+
+        pages = self.osctl.build_project_index()
+
+        by_name = {page["path"].name: page["issues"] for page in pages}
+        self.assertEqual(len(pages), 2)  # template excluded
+        self.assertEqual(by_name["{AIMAX} {overview} ai max growth – 2026-06-12.md"], [])
+        broken_issues = by_name["{draft} broken page – 2026-06-12.md"]
+        self.assertIn("missing project", broken_issues)
+        self.assertIn("missing owner", broken_issues)
+        self.assertIn("missing success_metrics", broken_issues)
+
+    def telemetry_args(self, **overrides) -> argparse.Namespace:
+        defaults = dict(
+            event="task.completed",
+            workflow="project_delivery",
+            status="completed",
+            actor="executor",
+            task="task-1",
+            run="",
+            summary="Closed the task.",
+        )
+        defaults.update(overrides)
+        return argparse.Namespace(**defaults)
+
+    def test_telemetry_log_rejects_unknown_event_type(self) -> None:
+        with self.assertRaises(SystemExit) as ctx:
+            self.osctl.cmd_telemetry_log(self.telemetry_args(event="task.exploded"))
+        self.assertIn("Invalid event type", str(ctx.exception))
+        self.assertFalse((self.osctl.RUNTIME / "telemetry").exists())
+
+    def test_telemetry_log_appends_jsonl(self) -> None:
+        self.osctl.cmd_telemetry_log(self.telemetry_args())
+        self.osctl.cmd_telemetry_log(self.telemetry_args(event="run.started", status="running"))
+
+        events_file = next((self.osctl.RUNTIME / "telemetry").glob("*/events.jsonl"))
+        lines = [json.loads(line) for line in events_file.read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(len(lines), 2)
+        self.assertEqual(lines[0]["event"], "task.completed")
+        self.assertEqual(lines[1]["status"], "running")
+
+    def test_telemetry_report_counts_by_dimension(self) -> None:
+        self.osctl.cmd_telemetry_log(self.telemetry_args())
+        self.osctl.cmd_telemetry_log(self.telemetry_args(event="run.started", status="running", actor="claude-code"))
+        week = self.osctl.iso_week(self.osctl.utc_timestamp())
+
+        self.osctl.cmd_telemetry_report(argparse.Namespace(week=week))
+
+        report = (self.osctl.RUNTIME / "telemetry/reports" / f"{week}.md").read_text(encoding="utf-8")
+        self.assertIn("- Events: 2", report)
+        self.assertIn("## By Workflow", report)
+        self.assertIn("- project_delivery: 2", report)
+        self.assertIn("## By Status", report)
+        self.assertIn("## By Actor", report)
+        self.assertIn("## By Event Type", report)
+        self.assertIn("- task.completed: 1", report)
 
     def test_run_receipt_references_approval_record(self) -> None:
         self.request_approval()

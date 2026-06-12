@@ -25,6 +25,12 @@ No external dependencies. Commands:
   approval-decide
                 Approve, reject, or block a pending approval record.
   approval-list  List local approval records.
+  context-pack   Build a context packet for spawning a subagent on a task.
+  project-new    Create a typed project page in os/04_Projects/.
+  project-index  Scan project pages and report missing contract fields.
+  telemetry-log  Append a validated telemetry event to .os_runtime/telemetry/.
+  telemetry-report
+                Render a weekly telemetry report by workflow/status/actor/event.
 """
 from __future__ import annotations
 
@@ -890,6 +896,394 @@ def cmd_approval_list(args: argparse.Namespace) -> None:
         )
 
 
+def agent_registry_path() -> Path:
+    return CONTROL_PLANE / "agent-registry.json"
+
+
+def workflow_registry_path() -> Path:
+    return CONTROL_PLANE / "workflow-registry.json"
+
+
+def projects_dir() -> Path:
+    return ROOT / "os/04_Projects"
+
+
+def context_packs_dir() -> Path:
+    return RUNTIME / "context-packs"
+
+
+def telemetry_dir() -> Path:
+    return RUNTIME / "telemetry"
+
+
+def load_json(path: Path, label: str) -> Dict[str, Any]:
+    if not path.exists():
+        raise SystemExit(f"Missing {label}: {path}")
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Invalid JSON in {label} {path}: {exc}") from exc
+
+
+def find_task(data: Dict[str, Any], task_id: str) -> Dict[str, Any]:
+    tasks = [t for t in data.get("tasks", []) if isinstance(t, dict)]
+    for task in tasks:
+        if task.get("id") == task_id:
+            return task
+    known = ", ".join(str(t.get("id")) for t in tasks) or "none"
+    raise SystemExit(f"Task not found: {task_id} (known ids: {known})")
+
+
+def find_role(registry: Dict[str, Any], role_id: str) -> Dict[str, Any]:
+    roles = [r for r in registry.get("roles", []) if isinstance(r, dict)]
+    for role in roles:
+        if role.get("id") == role_id:
+            return role
+    known = ", ".join(str(r.get("id")) for r in roles) or "none"
+    raise SystemExit(f"Unknown role: {role_id} (known roles: {known})")
+
+
+def build_context_pack(task: Dict[str, Any], role: Dict[str, Any], registry: Dict[str, Any], objective: str) -> str:
+    """Render a Markdown context packet per os/01_Operating_System/Naming_and_Context.md."""
+    constraints = list((registry.get("principal_contract") or {}).get("default_constraints") or [])
+    memory_boundary = ""
+    for grant in registry.get("capability_grants") or []:
+        if isinstance(grant, dict) and grant.get("role_id") == role.get("id"):
+            memory_boundary = normalize_text(grant.get("memory_boundary"))
+    read_files = [
+        "os/now.md",
+        "os/projects.md",
+        "os/05_Control_Plane/active-work.json",
+        str(task.get("primary_update_file")),
+    ]
+    for routing in registry.get("capability_routing") or []:
+        if isinstance(routing, dict) and routing.get("id") == task.get("workflow"):
+            read_files.extend(str(p) for p in routing.get("evidence") or [])
+    read_files = normalize_list(read_files)
+    lines = [
+        f"# Context Packet: {task['id']} -> {role['id']}",
+        "",
+        f"- Generated At: {utc_timestamp()}",
+        f"- Objective: {objective}",
+        f"- Role: {role.get('display_name')} ({role.get('id')}) — {role.get('mission')}",
+        f"- Manager: {task.get('manager')} | Owner: {task.get('owner')} | Accepts result: {task.get('accepts_result')}",
+        f"- Risk tier: {task.get('risk_tier')} | Autonomy tier: {task.get('autonomy_tier')} (role default: {role.get('default_autonomy_tier')})",
+        "",
+        "## Task Contract",
+        "",
+        f"- ID: `{task.get('id')}`",
+        f"- Title: {task.get('title')}",
+        f"- Column: {task.get('column')}",
+        f"- Project: {task.get('project')}",
+        f"- Workflow: {task.get('workflow')}",
+        f"- Next step: {task.get('next_step')}",
+        f"- Done when: {task.get('done_when')}",
+        f"- Primary update file: `{task.get('primary_update_file')}`",
+    ]
+    support = task.get("support") or []
+    if support:
+        lines.append(f"- Support roles: {', '.join(support)}")
+    lines += [
+        "",
+        "## Files To Read (pointers only)",
+        "",
+    ]
+    lines += [f"- `{path}`" for path in read_files]
+    lines += [
+        "",
+        "## Files Not To Read",
+        "",
+        "- Private vault folders (diary/journal/health/therapy/private/messages).",
+        "- Raw `.os_runtime/` reflections, telemetry, or session logs outside this task.",
+        "- Global chat history; this packet is the full intended context.",
+        "",
+        "## Constraints",
+        "",
+    ]
+    lines += [f"- {constraint}" for constraint in constraints]
+    if memory_boundary:
+        lines.append(f"- Memory boundary: {memory_boundary}")
+    lines += [
+        "- Do not paste raw private data into durable files; reference pointers instead.",
+        "",
+        "## Acceptance Criteria",
+        "",
+        f"- Done when: {task.get('done_when')}",
+        f"- Result is accepted by: {task.get('accepts_result')}",
+        "",
+        "## Return Format",
+        "",
+        "1. Summary of what was done (3-5 sentences).",
+        "2. Changed files or artifact paths.",
+        "3. Verification evidence (commands run, checks performed).",
+        "4. Open questions or assumptions.",
+        "5. Recommended next step for the manager.",
+    ]
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def cmd_context_pack(args: argparse.Namespace) -> None:
+    data = load()
+    task = find_task(data, args.task)
+    registry = load_json(agent_registry_path(), "agent registry")
+    role = find_role(registry, args.role)
+    packet = build_context_pack(task, role, registry, objective_title(data))
+    path = context_packs_dir() / str(task["id"]) / f"{role['id']}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(packet, encoding="utf-8")
+    print(f"Context packet: {path.relative_to(ROOT)}")
+
+
+# Project entity model v0 (Task 04): minimum contract for a project page.
+PROJECT_REQUIRED_FIELDS = [
+    "type",
+    "project",
+    "status",
+    "owner",
+    "review_cadence",
+    "success_metrics",
+    "risk_tier",
+    "autonomy_tier",
+]
+PROJECT_STATUSES = {"proposed", "active", "paused", "done", "killed"}
+
+
+def parse_frontmatter(text: str) -> tuple[Dict[str, Any] | None, str]:
+    """Tolerant YAML-ish frontmatter parser: scalars, inline and block lists."""
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return None, text
+    end = None
+    for i in range(1, len(lines)):
+        if lines[i].strip() in ("---", "..."):
+            end = i
+            break
+    if end is None:
+        return None, text
+    fm: Dict[str, Any] = {}
+    key: str | None = None
+    for raw in lines[1:end]:
+        stripped = raw.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.startswith("- ") or stripped == "-":
+            if key is not None and isinstance(fm.get(key), list):
+                item = stripped[1:].strip().strip("'\"")
+                if item:
+                    fm[key].append(item)
+            continue
+        match = re.match(r"([^:#]+):\s*(.*)$", stripped)
+        if not match:
+            continue
+        key = match.group(1).strip().lower()
+        value = match.group(2).strip()
+        if not value:
+            fm[key] = []  # may be filled by a block list
+        elif value.startswith("[") and value.endswith("]"):
+            fm[key] = [v.strip().strip("'\"") for v in value[1:-1].split(",") if v.strip()]
+        else:
+            fm[key] = value.strip("'\"")
+    return fm, "\n".join(lines[end + 1:])
+
+
+def project_filename(name: str, project_code: str, note_date: str | None = None) -> str:
+    return format_note_name("overview", name, note_date, project=project_code)
+
+
+def render_project_page(args: argparse.Namespace) -> str:
+    metrics = normalize_list(args.success_metric) or ["TBD"]
+    metric_lines = "\n".join(f"  - {metric}" for metric in metrics)
+    return f"""---
+type: overview
+project: {re.sub(r"[^A-Z0-9_-]+", "", args.project.strip().upper())}
+status: {args.status}
+owner: {args.owner}
+review_cadence: {args.review_cadence}
+success_metrics:
+{metric_lines}
+risk_tier: {args.risk_tier}
+autonomy_tier: {args.autonomy_tier}
+---
+
+# Project: {args.name}
+
+- Objective: {args.objective or "TBD"}
+- Current next action: TBD
+- Risks: TBD
+- Decisions: TBD
+
+## Context
+
+## Milestones
+
+## Active Tasks
+
+## Notes
+"""
+
+
+def cmd_project_new(args: argparse.Namespace) -> None:
+    if args.status not in PROJECT_STATUSES:
+        raise SystemExit(f"Invalid status {args.status!r}; use one of: {', '.join(sorted(PROJECT_STATUSES))}")
+    filename = project_filename(args.name, args.project, args.date)
+    path = projects_dir() / filename
+    if path.exists():
+        raise SystemExit(f"Project page already exists: {path.relative_to(ROOT)}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(render_project_page(args), encoding="utf-8")
+    print(f"Created {path.relative_to(ROOT)}")
+
+
+def project_page_issues(path: Path) -> List[str]:
+    issues: List[str] = []
+    fm, _ = parse_frontmatter(path.read_text(encoding="utf-8", errors="ignore"))
+    if fm is None:
+        issues.append("no frontmatter")
+        fm = {}
+    for field in PROJECT_REQUIRED_FIELDS:
+        value = fm.get(field)
+        if value is None or value == "" or value == []:
+            issues.append(f"missing {field}")
+    status = fm.get("status")
+    if isinstance(status, str) and status and status not in PROJECT_STATUSES:
+        issues.append(f"invalid status {status!r}")
+    name_errors = validate_note_name(path.name)
+    if name_errors:
+        issues.append("filename breaks naming convention")
+    return issues
+
+
+def build_project_index() -> List[Dict[str, Any]]:
+    root = projects_dir()
+    if not root.exists():
+        return []
+    skip = {"Project_Template.md", "README.md"}
+    pages: List[Dict[str, Any]] = []
+    for path in sorted(root.glob("*.md")):
+        if path.name in skip:
+            continue
+        pages.append({"path": path, "issues": project_page_issues(path)})
+    return pages
+
+
+def cmd_project_index(_: argparse.Namespace) -> None:
+    pages = build_project_index()
+    if not pages:
+        print("No project pages found in os/04_Projects/.")
+        return
+    broken = 0
+    for page in pages:
+        rel = page["path"].relative_to(ROOT)
+        if page["issues"]:
+            broken += 1
+            print(f"- {rel}: " + "; ".join(page["issues"]))
+        else:
+            print(f"- {rel}: OK")
+    print(f"\n{len(pages)} project page(s); {broken} with missing fields or naming issues.")
+    if broken:
+        raise SystemExit(1)
+
+
+def load_workflow_telemetry() -> Dict[str, Any]:
+    registry = load_json(workflow_registry_path(), "workflow registry")
+    telemetry = registry.get("telemetry") or {}
+    return {
+        "event_types": set(telemetry.get("event_types") or []),
+        "statuses": set(telemetry.get("statuses") or []),
+    }
+
+
+def telemetry_events_file(timestamp: str) -> Path:
+    return telemetry_dir() / timestamp[:7] / "events.jsonl"
+
+
+def cmd_telemetry_log(args: argparse.Namespace) -> None:
+    contract = load_workflow_telemetry()
+    if args.event not in contract["event_types"]:
+        raise SystemExit(
+            f"Invalid event type {args.event!r}; allowed: " + ", ".join(sorted(contract["event_types"]))
+        )
+    if args.status not in contract["statuses"]:
+        raise SystemExit(
+            f"Invalid status {args.status!r}; allowed: " + ", ".join(sorted(contract["statuses"]))
+        )
+    payload = {
+        "id": str(uuid.uuid4()),
+        "created_at": utc_timestamp(),
+        "event": args.event,
+        "workflow": normalize_text(args.workflow),
+        "status": args.status,
+        "actor": normalize_text(args.actor),
+        "task_id": normalize_text(args.task),
+        "run_id": normalize_text(args.run),
+        "summary": normalize_text(args.summary),
+    }
+    missing = [field for field in ("workflow", "actor") if not payload[field]]
+    if missing:
+        raise SystemExit("Missing telemetry field(s): " + ", ".join(missing))
+    path = telemetry_events_file(str(payload["created_at"]))
+    append_jsonl(path, payload)
+    print(f"Logged {args.event} to {path.relative_to(ROOT)}")
+
+
+def load_telemetry_events() -> List[Dict[str, Any]]:
+    events: List[Dict[str, Any]] = []
+    if not telemetry_dir().exists():
+        return events
+    for path in sorted(telemetry_dir().glob("*/events.jsonl")):
+        for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            if not line.strip():
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise SystemExit(f"Invalid JSON in {path.relative_to(ROOT)}:{line_no}: {exc}") from exc
+            if isinstance(payload, dict):
+                events.append(payload)
+    return events
+
+
+def iso_week(timestamp: str) -> str:
+    parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    year, week, _ = parsed.isocalendar()
+    return f"{year}-W{week:02d}"
+
+
+def count_by(events: List[Dict[str, Any]], field: str) -> List[tuple[str, int]]:
+    counts: Dict[str, int] = defaultdict(int)
+    for event in events:
+        counts[str(event.get(field) or "(none)")] += 1
+    return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+
+
+def render_telemetry_report(week: str, events: List[Dict[str, Any]]) -> str:
+    lines = [
+        f"# Telemetry Report: {week}",
+        "",
+        f"- Generated At: {utc_timestamp()}",
+        f"- Events: {len(events)}",
+        "",
+    ]
+    for field, title in (("workflow", "By Workflow"), ("status", "By Status"), ("actor", "By Actor"), ("event", "By Event Type")):
+        lines += [f"## {title}", ""]
+        lines += [f"- {name}: {count}" for name, count in count_by(events, field)] or ["- none"]
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def cmd_telemetry_report(args: argparse.Namespace) -> None:
+    week = normalize_text(args.week) or iso_week(utc_timestamp())
+    if not re.fullmatch(r"\d{4}-W\d{2}", week):
+        raise SystemExit("Week must be ISO format, e.g. 2026-W24")
+    events = [event for event in load_telemetry_events() if iso_week(str(event.get("created_at"))) == week]
+    report = render_telemetry_report(week, events)
+    path = telemetry_dir() / "reports" / f"{week}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(report, encoding="utf-8")
+    print(report)
+    print(f"Report: {path.relative_to(ROOT)}")
+
+
 def cmd_init(_: argparse.Namespace) -> None:
     seeded: List[str] = []
     for example_rel, live_rel in SEED_PAIRS:
@@ -1167,6 +1561,36 @@ def main() -> None:
     approval_list = sub.add_parser("approval-list")
     approval_list.add_argument("--status", choices=["all", "pending", "decided"], default="pending")
     approval_list.set_defaults(func=cmd_approval_list)
+    context_pack = sub.add_parser("context-pack")
+    context_pack.add_argument("--task", required=True)
+    context_pack.add_argument("--role", required=True)
+    context_pack.set_defaults(func=cmd_context_pack)
+    project_new = sub.add_parser("project-new")
+    project_new.add_argument("--name", required=True)
+    project_new.add_argument("--project", required=True, help="Short project code, e.g. AIMAX.")
+    project_new.add_argument("--status", default="active")
+    project_new.add_argument("--owner", default="user")
+    project_new.add_argument("--review-cadence", dest="review_cadence", default="weekly")
+    project_new.add_argument("--success-metric", action="append")
+    project_new.add_argument("--risk-tier", dest="risk_tier", choices=sorted(RISKS), default="low")
+    project_new.add_argument("--autonomy-tier", dest="autonomy_tier", choices=sorted(AUTONOMY), default="A1")
+    project_new.add_argument("--objective", default="")
+    project_new.add_argument("--date")
+    project_new.set_defaults(func=cmd_project_new)
+    project_index = sub.add_parser("project-index")
+    project_index.set_defaults(func=cmd_project_index)
+    telemetry_log = sub.add_parser("telemetry-log")
+    telemetry_log.add_argument("--event", required=True)
+    telemetry_log.add_argument("--workflow", required=True)
+    telemetry_log.add_argument("--status", default="completed")
+    telemetry_log.add_argument("--actor", required=True)
+    telemetry_log.add_argument("--task", default="")
+    telemetry_log.add_argument("--run", default="")
+    telemetry_log.add_argument("--summary", default="")
+    telemetry_log.set_defaults(func=cmd_telemetry_log)
+    telemetry_report = sub.add_parser("telemetry-report")
+    telemetry_report.add_argument("--week", default="", help="ISO week, e.g. 2026-W24; default: current week.")
+    telemetry_report.set_defaults(func=cmd_telemetry_report)
     args = parser.parse_args()
     args.func(args)
 

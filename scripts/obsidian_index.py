@@ -6,6 +6,12 @@ Scans selected folders of an Obsidian vault, extracts note metadata
   .os_runtime/obsidian/index.json   machine-readable index
   .os_runtime/obsidian/report.md    note-quality report with next actions
 
+With --suggest-renames it also writes a dry-run rename plan:
+  .os_runtime/obsidian/rename-plan.json
+  .os_runtime/obsidian/rename-plan.md
+The plan only suggests `{type} description – YYYY-MM-DD.md` names; nothing
+in the vault is modified (a future explicit --apply would be required).
+
 Never writes into the vault. Private folders (diary/journal/health/therapy/
 private/messages and Russian equivalents) are denied by default; remove a
 token explicitly with --allow if the user opts a folder in.
@@ -337,7 +343,105 @@ def render_report(index: Dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def run(vault: Path, include: List[str], deny: List[str], out: Path) -> Dict[str, Any]:
+STANDARD_NOTE_TYPES = {
+    "meeting", "decision", "research", "draft", "rule", "prd", "guide",
+    "transcript", "skill", "overview", "task", "spec", "review", "plan",
+}
+RENAME_ISSUES = {"invalid_filename_format", "generic_filename"}
+
+
+def suggest_note_name(note: Dict[str, Any], fallback_date: str) -> Tuple[str, Dict[str, str]]:
+    """Suggest a `{type} description – YYYY-MM-DD.md` name from note metadata.
+
+    Returns (suggested filename, sources) where sources records whether each
+    field came from frontmatter/filename metadata or a fallback.
+    """
+    sources: Dict[str, str] = {}
+    note_type = re.sub(r"[^a-z0-9_-]", "", str(note.get("type") or "").lower())
+    if note_type and note_type[0].isalpha():
+        sources["type"] = "metadata" if note_type in STANDARD_NOTE_TYPES else "metadata_nonstandard"
+    else:
+        note_type = "draft"
+        sources["type"] = "fallback"
+
+    note_date = note.get("date")
+    if note_date:
+        sources["date"] = "metadata"
+    else:
+        note_date = fallback_date
+        sources["date"] = "fallback_today"
+
+    description = re.sub(r"[^0-9a-zа-яё ]", " ", str(note.get("title") or "").lower())
+    words = description.split()[:7]
+    description = " ".join(words) if words else "untitled"
+    sources["description"] = "title" if words else "fallback"
+
+    prefix = ""
+    project = str(note.get("project") or "").strip()
+    if re.fullmatch(r"[A-Za-z0-9_-]+", project):
+        prefix = f"{{{project.upper()}}} "
+        sources["project"] = "metadata"
+    return f"{prefix}{{{note_type}}} {description} – {note_date}.md", sources
+
+
+def build_rename_plan(index: Dict[str, Any]) -> Dict[str, Any]:
+    fallback_date = index["generated_at"][:10]
+    renames: List[Dict[str, Any]] = []
+    for note in index["notes"]:
+        if not RENAME_ISSUES.intersection(note["issues"]):
+            continue
+        suggested_name, sources = suggest_note_name(note, fallback_date)
+        if filename_convention_errors(suggested_name[:-3]):
+            continue  # never suggest a name that breaks the convention
+        current = Path(note["path"])
+        if suggested_name == current.name:
+            continue
+        renames.append({
+            "path": note["path"],
+            "current_name": current.name,
+            "suggested_name": suggested_name,
+            "suggested_path": (current.parent / suggested_name).as_posix(),
+            "issues": [issue for issue in note["issues"] if issue in RENAME_ISSUES],
+            "sources": sources,
+        })
+    return {
+        "generated_at": index["generated_at"],
+        "vault": index["vault"],
+        "dry_run": True,
+        "count": len(renames),
+        "renames": renames,
+    }
+
+
+def render_rename_plan(plan: Dict[str, Any]) -> str:
+    lines = [
+        "# Obsidian Rename Plan (dry-run)",
+        "",
+        f"- Generated At: {plan['generated_at']}",
+        f"- Vault: `{plan['vault']}`",
+        f"- Suggested Renames: {plan['count']}",
+        "",
+        "Nothing has been modified. Review each suggestion and rename manually",
+        "(or wait for an explicit `--apply` mode; it does not exist yet).",
+        "",
+    ]
+    if not plan["renames"]:
+        lines.append("No renames needed — filenames follow the convention.")
+        return "\n".join(lines).rstrip() + "\n"
+    for entry in plan["renames"]:
+        lines += [
+            f"## `{entry['path']}`",
+            "",
+            f"- Suggested: `{entry['suggested_name']}`",
+            f"- Issues: {', '.join(entry['issues'])}",
+            f"- Sources: " + ", ".join(f"{k}={v}" for k, v in sorted(entry["sources"].items())),
+            "",
+        ]
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def run(vault: Path, include: List[str], deny: List[str], out: Path,
+        suggest_renames: bool = False) -> Dict[str, Any]:
     index = build_index(vault, include, deny)
     out = out.resolve()
     if out == Path(index["vault"]) or Path(index["vault"]) in out.parents:
@@ -347,6 +451,12 @@ def run(vault: Path, include: List[str], deny: List[str], out: Path) -> Dict[str
         json.dumps(index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     (out / "report.md").write_text(render_report(index), encoding="utf-8")
+    if suggest_renames:
+        plan = build_rename_plan(index)
+        (out / "rename-plan.json").write_text(
+            json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        (out / "rename-plan.md").write_text(render_rename_plan(plan), encoding="utf-8")
     return index
 
 
@@ -362,16 +472,22 @@ def main() -> None:
                         help="Remove a default denylist token (explicit opt-in); repeatable.")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT,
                         help=f"Output directory (default: {DEFAULT_OUT.relative_to(ROOT)})")
+    parser.add_argument("--suggest-renames", action="store_true",
+                        help="Also write a dry-run rename-plan.{json,md}; never modifies the vault.")
     args = parser.parse_args()
     if not args.vault:
         raise SystemExit("Set --vault or OBSIDIAN_VAULT to the vault root.")
     allow = {token.lower() for token in args.allow}
     deny = [t for t in DEFAULT_DENY if t not in allow] + [t.lower() for t in args.deny]
-    index = run(Path(args.vault).expanduser(), args.include, deny, args.out)
+    index = run(Path(args.vault).expanduser(), args.include, deny, args.out,
+                suggest_renames=args.suggest_renames)
     out = args.out.resolve()
     print(f"Scanned {index['scanned']} note(s); denied {index['skipped_denied']}; "
           f"outside include list {index['skipped_not_included']}.")
-    for name in ("index.json", "report.md"):
+    names = ["index.json", "report.md"]
+    if args.suggest_renames:
+        names += ["rename-plan.json", "rename-plan.md"]
+    for name in names:
         path = out / name
         print(path.relative_to(ROOT) if path.is_relative_to(ROOT) else path)
 

@@ -125,6 +125,56 @@ class ObsidianIndexTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             self.module.run(self.vault, [], list(self.module.DEFAULT_DENY), self.vault / "out")
 
+    def test_rename_plan_suggests_valid_names(self) -> None:
+        index = self.build()
+        plan = self.module.build_rename_plan(index)
+
+        self.assertTrue(plan["dry_run"])
+        self.assertEqual(plan["count"], len(plan["renames"]))
+        self.assertGreaterEqual(plan["count"], 1)
+        for entry in plan["renames"]:
+            stem = entry["suggested_name"][:-3]
+            self.assertEqual(self.module.filename_convention_errors(stem), [], entry)
+        # Valid filename is left alone.
+        paths = [entry["path"] for entry in plan["renames"]]
+        self.assertNotIn("Projects/{decision} switch to linear – 2026-03-20.md", paths)
+
+    def test_rename_plan_uses_frontmatter_when_available(self) -> None:
+        (self.vault / "Projects/My Old Decision.md").write_text(
+            "---\ntype: decision\ndate: 2026-01-05\nproject: ACME\n---\n\nBody.\n",
+            encoding="utf-8",
+        )
+        index = self.build()
+        plan = self.module.build_rename_plan(index)
+
+        entry = next(e for e in plan["renames"] if e["path"] == "Projects/My Old Decision.md")
+        self.assertEqual(entry["suggested_name"], "{ACME} {decision} my old decision – 2026-01-05.md")
+        self.assertEqual(entry["sources"]["type"], "metadata")
+        self.assertEqual(entry["sources"]["date"], "metadata")
+
+    def test_rename_plan_excludes_denied_folders(self) -> None:
+        index = self.build()
+        plan = self.module.build_rename_plan(index)
+
+        for entry in plan["renames"]:
+            self.assertFalse(entry["path"].startswith(("Journal/", "Здоровье/")), entry)
+
+    def test_suggest_renames_writes_plan_and_leaves_vault_untouched(self) -> None:
+        before = self.snapshot()
+        self.module.run(self.vault, [], list(self.module.DEFAULT_DENY), self.out, suggest_renames=True)
+
+        plan = json.loads((self.out / "rename-plan.json").read_text(encoding="utf-8"))
+        plan_md = (self.out / "rename-plan.md").read_text(encoding="utf-8")
+        self.assertTrue(plan["dry_run"])
+        self.assertIn("# Obsidian Rename Plan (dry-run)", plan_md)
+        self.assertIn("Nothing has been modified", plan_md)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_run_without_flag_does_not_write_plan(self) -> None:
+        self.module.run(self.vault, [], list(self.module.DEFAULT_DENY), self.out)
+        self.assertFalse((self.out / "rename-plan.json").exists())
+        self.assertFalse((self.out / "rename-plan.md").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "updated_at": "2026-06-10",
+  "operating_mode": "fixture-blocked",
+  "objective": {
+    "id": "fixture-blocked",
+    "title": "Queue where most work is waiting on approvals or other people.",
+    "window": { "start": "2026-06-01", "target_end": "2026-06-30" }
+  },
+  "tasks": [
+    {
+      "id": "blocked-publish-post",
+      "title": "Publish the announcement post",
+      "column": "waiting",
+      "project": "Demo Project",
+      "manager": "chief_of_staff",
+      "owner": "growth_lead",
+      "accepts_result": "user",
+      "risk_tier": "medium",
+      "autonomy_tier": "A3",
+      "workflow": "project_delivery",
+      "next_step": "Waiting for user approval of the final draft.",
+      "done_when": "Post is live and linked from the project page.",
+      "primary_update_file": "os/projects.md",
+      "tags": ["blocked", "needs-approval"],
+      "created_at": "2026-06-05",
+      "updated_at": "2026-06-09"
+    },
+    {
+      "id": "blocked-vendor-reply",
+      "title": "Sign the vendor agreement",
+      "column": "waiting",
+      "project": "Demo Project",
+      "manager": "chief_of_staff",
+      "owner": "user",
+      "accepts_result": "user",
+      "risk_tier": "high",
+      "autonomy_tier": "A4",
+      "workflow": "decision",
+      "next_step": "Waiting for the vendor's revised terms.",
+      "done_when": "Agreement signed or rejected.",
+      "primary_update_file": "os/03_Decisions/Open_Decisions.md",
+      "tags": ["blocked", "external"],
+      "created_at": "2026-06-03",
+      "updated_at": "2026-06-08"
+    },
+    {
+      "id": "blocked-only-active",
+      "title": "Prepare approval materials",
+      "column": "executing",
+      "project": "Demo Project",
+      "manager": "ai_ops_lead",
+      "owner": "executor",
+      "accepts_result": "governor",
+      "risk_tier": "low",
+      "autonomy_tier": "A2",
+      "workflow": "project_delivery",
+      "next_step": "Assemble the evidence bundle for both waiting tasks.",
+      "done_when": "Approval requests contain summaries and rollback paths.",
+      "primary_update_file": "os/projects.md",
+      "created_at": "2026-06-09",
+      "updated_at": "2026-06-10"
+    }
+  ]
+}

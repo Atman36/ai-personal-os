@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "updated_at": "2026-06-10",
+  "operating_mode": "fixture-clean",
+  "objective": {
+    "id": "fixture-clean",
+    "title": "Healthy queue: small WIP, fresh tasks, done has completed_at.",
+    "window": { "start": "2026-06-01", "target_end": "2026-06-30" }
+  },
+  "tasks": [
+    {
+      "id": "clean-write-guide",
+      "title": "Write the onboarding guide",
+      "column": "this_week",
+      "project": "Demo Project",
+      "manager": "chief_of_staff",
+      "owner": "executor",
+      "accepts_result": "user",
+      "risk_tier": "low",
+      "autonomy_tier": "A2",
+      "workflow": "project_delivery",
+      "next_step": "Draft the first section.",
+      "done_when": "Guide reviewed and merged.",
+      "primary_update_file": "os/projects.md",
+      "created_at": "2026-06-08",
+      "updated_at": "2026-06-09"
+    },
+    {
+      "id": "clean-fix-validator",
+      "title": "Fix the config validator",
+      "column": "executing",
+      "project": "Demo Project",
+      "manager": "ai_ops_lead",
+      "owner": "executor",
+      "accepts_result": "evidence_reviewer",
+      "risk_tier": "low",
+      "autonomy_tier": "A2",
+      "workflow": "project_delivery",
+      "next_step": "Add the failing test, then the fix.",
+      "done_when": "Test suite is green.",
+      "primary_update_file": "os/projects.md",
+      "created_at": "2026-06-09",
+      "updated_at": "2026-06-10"
+    },
+    {
+      "id": "clean-ship-readme",
+      "title": "Ship the README update",
+      "column": "done",
+      "project": "Demo Project",
+      "manager": "ai_ops_lead",
+      "owner": "executor",
+      "accepts_result": "user",
+      "risk_tier": "low",
+      "autonomy_tier": "A2",
+      "workflow": "project_delivery",
+      "next_step": "None — completed.",
+      "done_when": "README merged.",
+      "primary_update_file": "README.md",
+      "created_at": "2026-06-05",
+      "updated_at": "2026-06-08",
+      "completed_at": "2026-06-08"
+    }
+  ]
+}
