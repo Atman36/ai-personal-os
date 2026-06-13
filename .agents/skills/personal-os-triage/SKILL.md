@@ -1,9 +1,11 @@
 ---
-name: hq-context-aware-triage
+name: personal-os-triage
 description: Use when turning a broad Personal OS request, founder idea, report, blocker, or incoming work item into a scoped Personal OS task contract with owner, accepting role, risk tier, autonomy tier, workflow, primary update file, acceptance criteria, and next step.
 ---
 
 # Personal OS Context-Aware Triage
+
+> Compatibility note: formerly `hq-context-aware-triage`. The `hq-` name is retired; references now use `personal-os-triage`.
 
 Use this skill before adding or reshaping work in the Personal OS queue.
 
@@ -35,7 +37,7 @@ Use this skill for requests like:
 5. Choose the workflow state and required fields from the workflow registry.
 6. Set a single primary update file and one concrete next step.
 7. Define acceptance criteria that can be checked without reading the whole repo.
-8. If queue state changes, use `$hq-task-lifecycle` for the actual `active-work.json` edit, sync, and validation.
+8. If queue state changes, use `$personal-os-task-lifecycle` for the actual `active-work.json` edit, sync, and validation.
 
 ## Guardrails
 

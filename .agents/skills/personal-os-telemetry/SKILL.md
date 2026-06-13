@@ -1,9 +1,11 @@
 ---
-name: hq-telemetry-event-logger
+name: personal-os-telemetry
 description: Use when Personal OS operations need structured telemetry events written to .os_runtime/telemetry/ for observability, eval input, or the weekly self-improvement loop. Covers task completions, skill invocations, policy decisions, hook triggers, and session boundaries.
 ---
 
 # Personal OS Telemetry Event Logger
+
+> Compatibility note: formerly `hq-telemetry-event-logger`. The `hq-` name is retired; references now use `personal-os-telemetry`.
 
 Use this skill as the single write path for structured telemetry events. Telemetry feeds the weekly operating review, the self-improvement loop, and eval baselines. Write-only at runtime: never edit past events.
 

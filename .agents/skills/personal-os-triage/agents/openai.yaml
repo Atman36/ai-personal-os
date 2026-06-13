@@ -1,4 +1,4 @@
 interface:
   display_name: "Personal OS Triage"
   short_description: "Turn broad Personal OS work into a complete control-plane task contract"
-  default_prompt: "Use $hq-context-aware-triage to classify this work into owner, workflow, risk, autonomy, acceptance, and next step."
+  default_prompt: "Use $personal-os-triage to classify this work into owner, workflow, risk, autonomy, acceptance, and next step."

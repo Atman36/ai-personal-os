@@ -1,4 +1,4 @@
 interface:
   display_name: "Personal OS Telemetry Logger"
   short_description: "Append structured telemetry events to .os_runtime/telemetry/ for observability and the improvement loop"
-  default_prompt: "Use $hq-telemetry-event-logger to write a structured telemetry event for this Personal OS operation."
+  default_prompt: "Use $personal-os-telemetry to write a structured telemetry event for this Personal OS operation."

@@ -1,9 +1,11 @@
 ---
-name: hq-weekly-operating-review
+name: personal-os-weekly-review
 description: Use for Personal OS weekly review, operating review, founder weekly ritual, carry-forward review, queue health review, stale packet review, next-week commitments, or refreshing the weekly operating cadence from the control plane.
 ---
 
 # Personal OS Weekly Operating Review
+
+> Compatibility note: formerly `hq-weekly-operating-review`. The `hq-` name is retired; references now use `personal-os-weekly-review`.
 
 Use this skill for the founder-facing weekly operating ritual. It is a workflow wrapper, not an independent source of truth.
 
@@ -30,8 +32,8 @@ Use this skill for requests like:
 1. State the current objective, active task list, stale packets, and recovery queue from status.
 2. Compare this week's commitments against active work; do not infer completion without evidence.
 3. Identify tasks to continue, pause, split, close, or escalate.
-4. For each material queue change, use `$hq-task-lifecycle` to update `active-work.json`, sync, and validate.
-5. If a task needs continuity, use `$hq-spec-handoff-writer` to refresh its private packet.
+4. For each material queue change, use `$personal-os-task-lifecycle` to update `active-work.json`, sync, and validate.
+5. If a task needs continuity, use `$personal-os-spec-handoff` to refresh its private packet.
 6. Update `02 Planning/Weekly Plan.md` only when the slice explicitly includes the human weekly working layer.
 7. End with founder decisions, next-week commitments, and verification evidence.
 

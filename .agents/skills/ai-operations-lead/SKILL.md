@@ -41,10 +41,10 @@ Do not use this skill for specialist execution that already belongs to Delivery,
 
 ## Composition Rules
 
-- Use `$hq-context-aware-triage` before adding or reshaping broad incoming work.
-- Use `$hq-task-lifecycle` for any `active-work.json` state change, board sync, or validation loop.
-- Use `$hq-spec-handoff-writer` before delegation, timeout handoff, stale packet refresh, or multi-session work.
-- Use `$hq-weekly-operating-review` for weekly cadence and carry-forward decisions.
+- Use `$personal-os-triage` before adding or reshaping broad incoming work.
+- Use `$personal-os-task-lifecycle` for any `active-work.json` state change, board sync, or validation loop.
+- Use `$personal-os-spec-handoff` before delegation, timeout handoff, stale packet refresh, or multi-session work.
+- Use `$personal-os-weekly-review` for weekly cadence and carry-forward decisions.
 - Use `$governor` before commit, push, export, public sharing, external messaging, spend, legal/public claims, or any autonomy expansion.
 
 ## Guardrails

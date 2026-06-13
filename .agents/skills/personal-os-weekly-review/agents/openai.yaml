@@ -1,4 +1,4 @@
 interface:
   display_name: "Personal OS Weekly Review"
   short_description: "Run the founder weekly operating review from Personal OS control-plane state"
-  default_prompt: "Use $hq-weekly-operating-review to review active work, stale packets, carry-forward decisions, and next-week commitments."
+  default_prompt: "Use $personal-os-weekly-review to review active work, stale packets, carry-forward decisions, and next-week commitments."

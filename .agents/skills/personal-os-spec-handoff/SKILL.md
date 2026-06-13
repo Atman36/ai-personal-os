@@ -1,9 +1,11 @@
 ---
-name: hq-spec-handoff-writer
+name: personal-os-spec-handoff
 description: Use when creating or refreshing .os_runtime/specs/<task>/LATEST.md or .os_runtime/handoffs/<task>/LATEST.md for Personal OS tasks, especially before multi-session work, delegation, timeout handoff, resuming stale packets, or preserving bounded continuity.
 ---
 
 # Personal OS Spec Handoff Writer
+
+> Compatibility note: formerly `hq-spec-handoff-writer`. The `hq-` name is retired; references now use `personal-os-spec-handoff`.
 
 Use this skill to write private task packets that preserve continuity without publishing private operating detail.
 

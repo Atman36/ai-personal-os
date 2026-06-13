@@ -41,7 +41,7 @@ Do not use this skill for routine implementation, queue routing, or shared-truth
 ## Composition Rules
 
 - Use this Governor skill for the policy decision: approve, block, require user review, or define rollback.
-- Use `$hq-task-lifecycle` only after a policy decision requires a queue-state update.
+- Use `$personal-os-task-lifecycle` only after a policy decision requires a queue-state update.
 - If the action would publish, push, send, spend, delete, or touch credentials, require explicit user approval even when the local scan looks clean.
 
 ## Guardrails

@@ -1,9 +1,11 @@
 ---
-name: hq-task-lifecycle
+name: personal-os-task-lifecycle
 description: Use when creating, updating, advancing, closing, or validating Personal OS tasks in os/05_Control_Plane/active-work.json. Trigger on active-work, task lifecycle, queue update, workflow state change, sync task board, validate control plane, or move a task between Personal OS workflow states.
 ---
 
 # Personal OS Task Lifecycle
+
+> Compatibility note: formerly `hq-task-lifecycle`. The `hq-` name is retired; references now use `personal-os-task-lifecycle`.
 
 Use this skill as the single workflow for changing Personal OS delegated-work state.
 
